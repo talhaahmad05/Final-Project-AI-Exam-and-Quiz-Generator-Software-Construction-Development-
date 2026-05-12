@@ -1,0 +1,89 @@
+# quiz_errors.log — QuizAI Platform Error Log
+2026-05-12 22:11:23,051 [ERROR] QuizPlatform.ai_engine: Ollama service is offline.
+2026-05-12 22:11:23,052 [ERROR] QuizPlatform.ai_engine: Failed to parse AI questions: Expecting value: line 1 column 1 (char 0)
+2026-05-12 23:24:59,722 [INFO] QuizPlatform.database.db_setup: Creating database QuizAIPlatform...
+2026-05-12 23:25:00,125 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-12 23:25:00,127 [INFO] QuizPlatform.database.db_setup: Inserting seed data...
+2026-05-12 23:25:00,197 [INFO] QuizPlatform.database.db_setup: Seed data inserted.
+2026-05-12 23:25:34,087 [INFO] QuizPlatform.ui.login_ui: User 'admin' logged in as Admin
+2026-05-12 23:27:17,178 [ERROR] QuizPlatform.ai_engine: AI call failed: HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=30)
+2026-05-12 23:28:47,409 [INFO] QuizPlatform.ui.login_ui: User 'student1' logged in as Student
+2026-05-12 23:30:21,186 [ERROR] QuizPlatform.ai_engine: AI call failed: HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=30)
+2026-05-12 23:34:25,162 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-12 23:34:35,276 [INFO] QuizPlatform.ui.login_ui: User 'admin' logged in as Admin
+2026-05-12 23:36:06,611 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-12 23:36:12,990 [INFO] QuizPlatform.ui.login_ui: User 'admin' logged in as Admin
+2026-05-12 23:37:35,421 [ERROR] QuizPlatform.ai_engine: AI call failed: HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=60)
+2026-05-12 23:43:01,475 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-12 23:43:08,717 [INFO] QuizPlatform.ui.login_ui: User 'admin' logged in as Admin
+2026-05-12 23:48:10,885 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-12 23:48:21,060 [INFO] QuizPlatform.ui.login_ui: User 'admin' logged in as Admin
+2026-05-12 23:50:52,973 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-12 23:50:53,699 [CRITICAL] __main__: Application failed to start: name 'user' is not defined
+2026-05-12 23:51:06,265 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-12 23:51:07,095 [CRITICAL] __main__: Application failed to start: name 'user' is not defined
+2026-05-12 23:51:54,781 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-12 23:52:03,241 [INFO] QuizPlatform.ui.login_ui: User 'admin' logged in as Admin
+2026-05-12 23:54:02,952 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-12 23:54:10,222 [INFO] QuizPlatform.ui.login_ui: User 'admin' logged in as Admin
+2026-05-12 23:56:48,780 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-12 23:56:56,468 [INFO] QuizPlatform.ui.login_ui: User 'admin' logged in as Admin
+2026-05-12 23:57:28,582 [INFO] QuizPlatform.ui.login_ui: User 'student1' logged in as Student
+2026-05-12 23:58:39,479 [INFO] QuizPlatform.ui.login_ui: User 'admin' logged in as Admin
+2026-05-13 00:02:32,722 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 00:02:48,029 [INFO] QuizPlatform.ui.login_ui: User 'student2' logged in as Student
+2026-05-13 00:03:40,818 [INFO] QuizPlatform.ui.login_ui: User 'admin' logged in as Admin
+2026-05-13 00:05:44,026 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 00:05:55,888 [INFO] QuizPlatform.ui.login_ui: User 'admin' logged in as Admin
+2026-05-13 00:06:42,433 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 00:06:51,056 [INFO] QuizPlatform.ui.login_ui: User 'admin' logged in as Admin
+2026-05-13 00:11:23,568 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 00:11:30,148 [INFO] QuizPlatform.ui.login_ui: User 'admin' logged in as Admin
+2026-05-13 00:13:23,645 [INFO] QuizPlatform.ui.login_ui: User 'student1' logged in as Student
+2026-05-13 00:14:08,403 [ERROR] QuizPlatform.ai_engine: AI call failed: HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=120)
+2026-05-13 00:14:24,060 [INFO] QuizPlatform.ui.login_ui: User 'admin' logged in as Admin
+2026-05-13 00:16:17,366 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 00:16:29,398 [INFO] QuizPlatform.ui.login_ui: User 'student1' logged in as Student
+2026-05-13 00:22:14,528 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 00:22:26,409 [INFO] QuizPlatform.ui.login_ui: User 'student2' logged in as Student
+2026-05-13 00:25:44,392 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 00:26:05,425 [INFO] QuizPlatform.ui.login_ui: User 'student3' logged in as Student
+2026-05-13 00:27:36,793 [INFO] QuizPlatform.ui.login_ui: User 'admin' logged in as Admin
+2026-05-13 00:29:42,704 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 00:29:48,940 [INFO] QuizPlatform.ui.login_ui: User 'admin' logged in as Admin
+2026-05-13 00:31:06,078 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 00:31:13,928 [INFO] QuizPlatform.ui.login_ui: User 'admin' logged in as Admin
+2026-05-13 00:36:30,080 [INFO] QuizPlatform.ui.login_ui: User 'student1' logged in as Student
+2026-05-13 00:37:00,397 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 00:37:13,375 [INFO] QuizPlatform.ui.login_ui: User 'student1' logged in as Student
+2026-05-13 00:40:01,762 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 00:40:18,020 [INFO] QuizPlatform.ui.login_ui: User 'student1' logged in as Student
+2026-05-13 00:42:50,586 [INFO] QuizPlatform.ui.login_ui: User 'admin' logged in as Admin
+2026-05-13 00:45:38,071 [ERROR] QuizPlatform.dao.question_dao: Error deleting question: ('23000', '[23000] [Microsoft][ODBC SQL Server Driver][SQL Server]The DELETE statement conflicted with the REFERENCE constraint "FK__ExamQuest__quest__412EB0B6". The conflict occurred in database "QuizAIPlatform", table "dbo.ExamQuestions", column \'question_id\'. (547) (SQLExecDirectW); [23000] [Microsoft][ODBC SQL Server Driver][SQL Server]The statement has been terminated. (3621)')
+2026-05-13 00:54:23,399 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 00:54:32,300 [INFO] QuizPlatform.ui.login_ui: User 'admin' logged in as Admin
+2026-05-13 00:57:54,684 [ERROR] QuizPlatform.ai_engine: AI call failed: HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=120)
+2026-05-13 01:00:56,832 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 01:01:00,910 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 01:01:02,403 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 01:01:05,680 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 01:01:10,946 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 01:01:14,187 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 01:01:23,334 [INFO] QuizPlatform.ui.login_ui: User 'admin' logged in as Admin
+2026-05-13 01:05:35,988 [INFO] QuizPlatform.ui.login_ui: User 'student3' logged in as Student
+2026-05-13 01:14:00,648 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 01:14:10,481 [INFO] QuizPlatform.ui.login_ui: User 'admin' logged in as Admin
+2026-05-13 01:16:37,883 [INFO] QuizPlatform.ui.login_ui: User 'student2' logged in as Student
+2026-05-13 01:20:46,783 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 01:20:57,014 [INFO] QuizPlatform.ui.login_ui: User 'admin' logged in as Admin
+2026-05-13 01:22:11,239 [INFO] QuizPlatform.ui.login_ui: User 'ali' logged in as Student
+2026-05-13 01:22:23,962 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 01:22:27,061 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 01:25:04,233 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 01:27:31,989 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 01:27:39,986 [INFO] QuizPlatform.ui.login_ui: User 'admin' logged in as Admin
+2026-05-13 01:28:09,038 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 01:29:24,053 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 01:29:27,376 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 01:29:45,980 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 01:29:57,043 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
