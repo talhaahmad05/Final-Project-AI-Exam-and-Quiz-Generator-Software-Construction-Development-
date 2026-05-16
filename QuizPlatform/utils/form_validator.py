@@ -53,5 +53,14 @@ class FormValidator:
             raise QuizValidationError("All fields are required.")
         if new_p != confirm_p:
             raise QuizValidationError("New passwords do not match.")
-        if len(new_p) < 5:
-            raise QuizValidationError("New password must be at least 5 characters.")
+        if len(new_p) < 8:
+            raise QuizValidationError("New password must be at least 8 characters.")
+
+    @staticmethod
+    def validate_student(username, password, full_name, is_new=True):
+        if not username or not full_name:
+            raise QuizValidationError("Username and Full Name are required.")
+        if is_new and not password:
+            raise QuizValidationError("Password is required for new students.")
+        if password and len(password) < 8:
+            raise QuizValidationError("Password must be at least 8 characters long.")

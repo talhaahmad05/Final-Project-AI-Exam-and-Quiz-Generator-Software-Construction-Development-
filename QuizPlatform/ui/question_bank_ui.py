@@ -165,9 +165,19 @@ class QuestionBankUI(QWidget):
         title.setStyleSheet("color: #1A1A2E;")
         hdr.addWidget(title)
         hdr.addStretch()
+
+        btn_delete_all = QPushButton("🗑 Delete All")
+        btn_delete_all.setObjectName("btn_delete_all")
+        btn_delete_all.setFixedWidth(150)
+        btn_delete_all.setFixedHeight(44)
+        # Note: Theme style will apply (Green/Red), but we can add a specific tooltip
+        btn_delete_all.setToolTip("Delete all questions from the bank")
+        btn_delete_all.clicked.connect(self.delete_all_questions)
+        hdr.addWidget(btn_delete_all)
+
         btn_add = QPushButton("➕ Add Question")
-        btn_add.setFixedWidth(150)
-        btn_add.setFixedHeight(38)
+        btn_add.setFixedWidth(170)
+        btn_add.setFixedHeight(44)
         btn_add.clicked.connect(self.add_question)
         hdr.addWidget(btn_add)
         layout.addLayout(hdr)
@@ -212,6 +222,8 @@ class QuestionBankUI(QWidget):
         self.table.setColumnCount(7)
         self.table.setHorizontalHeaderLabels(["ID", "Question", "Type", "Subject", "Difficulty", "Topic", "Actions"])
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        self.table.setColumnWidth(0, 50) # ID
+        self.table.setColumnWidth(6, 220) # Actions
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setAlternatingRowColors(True)
@@ -269,10 +281,10 @@ class QuestionBankUI(QWidget):
             btn_layout = QHBoxLayout(btn_widget)
             btn_layout.setContentsMargins(4, 2, 4, 2)
             btn_edit = QPushButton("✏ Edit")
-            btn_edit.setFixedWidth(72)
+            btn_edit.setFixedHeight(40)
             btn_edit.clicked.connect(lambda _, r=row: self.edit_question(r))
             btn_del = QPushButton("🗑 Del")
-            btn_del.setFixedWidth(68)
+            btn_del.setFixedHeight(40)
             btn_del.clicked.connect(lambda _, r=row: self.delete_question(r))
             btn_layout.addWidget(btn_edit)
             btn_layout.addWidget(btn_del)
@@ -324,3 +336,31 @@ class QuestionBankUI(QWidget):
                 self.refresh_table()
             except QuizDatabaseError as e:
                 QMessageBox.critical(self, "DB Error", str(e))
+
+    def delete_all_questions(self):
+        """Handler for the 'Delete All' button"""
+        count = len(self.all_questions)
+        if count == 0:
+            QMessageBox.information(self, "Info", "The question bank is already empty.")
+            return
+
+        reply = QMessageBox.warning(self, "Confirm MASS Delete",
+                                     f"Are you SURE you want to delete ALL {count} questions?\n"
+                                     "This action is permanent and will clear all question links in exams.",
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        
+        if reply == QMessageBox.Yes:
+            # Second confirmation for safety
+            reply2 = QMessageBox.critical(self, "Final Warning",
+                                          "This will also delete student answers and hints related to these questions.\n"
+                                          "Proceed with total deletion?",
+                                          QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            
+            if reply2 == QMessageBox.Yes:
+                try:
+                    self.dao.delete_all_questions()
+                    self.refresh_table()
+                    QMessageBox.information(self, "Success", "All questions have been deleted.")
+                    logger.info(f"User {self.user.get('username', 'Unknown')} deleted all questions.")
+                except QuizDatabaseError as e:
+                    QMessageBox.critical(self, "DB Error", str(e))

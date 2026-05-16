@@ -59,6 +59,7 @@ class GradingDialog(QDialog):
         self.table.setHorizontalHeaderLabels(["Question", "Type", "Student Answer", "Correct Answer", "Marks Awarded"])
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        self.table.setColumnWidth(4, 180) # Marks Awarded
         self.table.setAlternatingRowColors(True)
         self.table.setStyleSheet("background-color: white; color: #1A1A2E;")
         
@@ -79,7 +80,8 @@ class GradingDialog(QDialog):
             spin.setRange(0, 100) # Assume max 100 per q for simplicity, ideally get from DB
             spin.setValue(int(ans['marks_awarded']))
             btn_update = QPushButton("Save")
-            btn_update.setFixedWidth(50)
+            btn_update.setFixedWidth(100)
+            btn_update.setFixedHeight(38)
             btn_update.clicked.connect(lambda _, r=row, q_id=ans['question_id'], s=spin: self._update_marks(q_id, s.value()))
             
             ml.addWidget(spin)

@@ -12,14 +12,20 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 
 from QuizPlatform.dao.student_dao import StudentDAO
-from QuizPlatform.exceptions import QuizDatabaseError
+from QuizPlatform.exceptions import QuizDatabaseError, QuizValidationError
+from QuizPlatform.utils.form_validator import FormValidator
 
-class AddStudentDialog(QDialog):
-    def __init__(self, parent):
+class StudentDialog(QDialog):
+    def __init__(self, parent, student_data=None):
         super().__init__(parent)
-        self.setWindowTitle("Add New Student")
+        self.student_data = student_data
+        self.setWindowTitle("Edit Student" if student_data else "Register New Student")
         self.setFixedWidth(400)
         self._build_ui()
+        if student_data:
+            self.name_input.setText(student_data['full_name'])
+            self.user_input.setText(student_data['username'])
+            self.pass_input.setPlaceholderText("(Leave blank to keep current password)")
 
     def _build_ui(self):
         layout = QVBoxLayout(self)
@@ -40,18 +46,24 @@ class AddStudentDialog(QDialog):
         self.btn_cancel = QPushButton("Cancel")
         self.btn_cancel.clicked.connect(self.reject)
         
-        self.btn_add = QPushButton("Add Student")
-        self.btn_add.clicked.connect(self._validate_and_accept)
+        btn_text = "Save Changes" if self.student_data else "Register Student"
+        self.btn_save = QPushButton(btn_text)
+        self.btn_save.clicked.connect(self._validate_and_accept)
         
         btns.addWidget(self.btn_cancel)
-        btns.addWidget(self.btn_add)
+        btns.addWidget(self.btn_save)
         layout.addLayout(btns)
 
     def _validate_and_accept(self):
-        if not self.name_input.text().strip() or not self.user_input.text().strip() or not self.pass_input.text().strip():
-            QMessageBox.warning(self, "Input Error", "All fields are required!")
-            return
-        self.accept()
+        name = self.name_input.text().strip()
+        user = self.user_input.text().strip()
+        password = self.pass_input.text().strip()
+        
+        try:
+            FormValidator.validate_student(user, password, name, is_new=(not self.student_data))
+            self.accept()
+        except QuizValidationError as e:
+            QMessageBox.warning(self, "Validation Error", str(e))
 
     def get_data(self):
         return {
@@ -93,16 +105,24 @@ class StudentMgmtUI(QWidget):
         self.table.setStyleSheet("background-color: white; border-radius: 8px; color: #1A1A2E;")
         layout.addWidget(self.table)
         
+        btn_row = QHBoxLayout()
+        btn_edit = QPushButton("✏ Edit Selected Student")
+        btn_edit.setFixedHeight(44)
+        btn_edit.clicked.connect(self.edit_student)
+        btn_row.addWidget(btn_edit)
+        
         btn_del = QPushButton("🗑 Delete Selected Student")
+        btn_del.setFixedHeight(44)
         btn_del.clicked.connect(self.delete_student)
-        layout.addWidget(btn_del)
+        btn_row.addWidget(btn_del)
+        layout.addLayout(btn_row)
 
     def refresh_students(self):
         try:
             self.table.setRowCount(0)
-            students = self.dao.get_all_students()
-            self.table.setRowCount(len(students))
-            for i, s in enumerate(students):
+            self.students = self.dao.get_all_students()
+            self.table.setRowCount(len(self.students))
+            for i, s in enumerate(self.students):
                 self.table.setItem(i, 0, QTableWidgetItem(str(s['id'])))
                 self.table.setItem(i, 1, QTableWidgetItem(s['full_name']))
                 self.table.setItem(i, 2, QTableWidgetItem(s['username']))
@@ -111,16 +131,30 @@ class StudentMgmtUI(QWidget):
             QMessageBox.critical(self, "Error", f"Failed to load students: {e}")
 
     def add_student(self):
-        dlg = AddStudentDialog(self)
+        dlg = StudentDialog(self)
         if dlg.exec_() == QDialog.Accepted:
             data = dlg.get_data()
-            if not all([data['name'], data['user'], data['pass']]):
-                QMessageBox.warning(self, "Error", "All fields are required.")
-                return
             try:
                 self.dao.add_student(data['user'], data['pass'], data['name'])
                 self.refresh_students()
                 QMessageBox.information(self, "Success", "Student registered successfully!")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", str(e))
+
+    def edit_student(self):
+        curr = self.table.currentRow()
+        if curr < 0:
+            QMessageBox.warning(self, "Selection", "Select a student to edit.")
+            return
+        
+        student_data = self.students[curr]
+        dlg = StudentDialog(self, student_data)
+        if dlg.exec_() == QDialog.Accepted:
+            data = dlg.get_data()
+            try:
+                self.dao.update_student(student_data['id'], data['user'], data['pass'], data['name'])
+                self.refresh_students()
+                QMessageBox.information(self, "Success", "Student updated successfully!")
             except Exception as e:
                 QMessageBox.critical(self, "Error", str(e))
 

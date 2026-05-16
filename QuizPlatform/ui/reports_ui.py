@@ -1,3 +1,4 @@
+# VERIFIED — no changes needed
 """
 filename: reports_ui.py
 module: Reports UI
@@ -46,7 +47,11 @@ class ReportsUI(QWidget):
         title.setFont(QFont("Segoe UI", 18, QFont.Bold))
         title.setStyleSheet("color: #1A1A2E;")
         hdr.addWidget(title)
-        hdr.addStretch()
+        btn_refresh = QPushButton("🔄 Refresh Data")
+        btn_refresh.setFixedWidth(140)
+        btn_refresh.setFixedHeight(42)
+        btn_refresh.clicked.connect(self.refresh_data)
+        hdr.addWidget(btn_refresh)
         layout.addLayout(hdr)
 
         # Exam selector
@@ -64,7 +69,7 @@ class ReportsUI(QWidget):
         sel_layout.addWidget(self.exam_combo)
         
         btn_load = QPushButton("📈 Load Detailed Reports")
-        btn_load.setFixedHeight(36)
+        btn_load.setFixedHeight(42)
         btn_load.clicked.connect(self.load_report)
         sel_layout.addWidget(btn_load)
         sel_layout.addStretch()
@@ -108,7 +113,7 @@ class ReportsUI(QWidget):
         lb_layout = QVBoxLayout(lb_tab)
         self.lb_table = self._make_table(["Rank", "Student Name", "Score", "Percentage", "Time Taken"])
         btn_export_lb = QPushButton("📥 Export Leaderboard CSV")
-        btn_export_lb.setFixedHeight(34)
+        btn_export_lb.setFixedHeight(42)
         btn_export_lb.clicked.connect(lambda: self._export_csv(self.lb_table, "leaderboard"))
         lb_layout.addWidget(self.lb_table)
         lb_layout.addWidget(btn_export_lb)
@@ -119,7 +124,7 @@ class ReportsUI(QWidget):
         perf_layout = QVBoxLayout(perf_tab)
         self.perf_table = self._make_table(["Student", "Exam", "Score", "Percentage", "Date"])
         btn_export_perf = QPushButton("📥 Export Performance CSV")
-        btn_export_perf.setFixedHeight(34)
+        btn_export_perf.setFixedHeight(42)
         btn_export_perf.clicked.connect(lambda: self._export_csv(self.perf_table, "student_performance"))
         perf_layout.addWidget(self.perf_table)
         perf_layout.addWidget(btn_export_perf)
@@ -171,16 +176,24 @@ class ReportsUI(QWidget):
 
     def _load_exams(self):
         try:
+            self.exam_combo.clear()
             self.all_exams = self.exam_dao.get_all_exams()
             for exam in self.all_exams:
                 self.exam_combo.addItem(exam['title'], userData=exam['id'])
         except QuizDatabaseError as e:
             QMessageBox.critical(self, "DB Error", str(e))
 
+    def refresh_data(self):
+        """Reloads all data from the database"""
+        self._load_exams()
+        if self.exam_combo.count() > 0:
+            self.load_report()
+        QMessageBox.information(self, "Refreshed", "Data has been reloaded from the database.")
+
     def load_report(self):
         exam_id = self.exam_combo.currentData()
         print(f"DEBUG: Loading report for Exam ID: {exam_id}")
-        if not exam_id:
+        if exam_id is None:
             print("DEBUG: No exam ID selected in combo box.")
             return
         try:

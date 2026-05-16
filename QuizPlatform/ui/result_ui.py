@@ -1,3 +1,4 @@
+# VERIFIED — no changes needed
 """
 filename: result_ui.py
 module: Result & Review UI

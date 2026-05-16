@@ -87,3 +87,46 @@
 2026-05-13 01:29:27,376 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
 2026-05-13 01:29:45,980 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
 2026-05-13 01:29:57,043 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 08:45:49,961 [ERROR] QuizPlatform.ai_engine: Ollama service is offline.
+2026-05-13 08:45:49,962 [ERROR] QuizPlatform.ai_engine: Failed to parse AI questions: Expecting value: line 1 column 1 (char 0)
+2026-05-13 08:50:07,157 [ERROR] QuizPlatform.ai_engine: Ollama service is offline.
+2026-05-13 08:50:07,158 [ERROR] QuizPlatform.ai_engine: Failed to parse AI questions: Expecting value: line 1 column 1 (char 0)
+2026-05-13 08:50:49,705 [ERROR] QuizPlatform.ai_engine: Ollama service is offline.
+2026-05-13 08:50:49,709 [ERROR] QuizPlatform.ai_engine: Failed to parse AI questions: Expecting value: line 1 column 1 (char 0)
+2026-05-13 08:53:39,716 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 08:53:50,652 [INFO] QuizPlatform.ui.login_ui: User 'ali' logged in as Student
+2026-05-13 09:09:06,580 [ERROR] QuizPlatform.ai_engine: Ollama service is offline.
+2026-05-13 09:09:06,581 [ERROR] QuizPlatform.ai_engine: Failed to parse AI questions: Expecting value: line 1 column 1 (char 0)
+2026-05-13 09:14:43,118 [ERROR] __main__: AI call failed: 404 Client Error: Not Found for url: http://localhost:11434/api/generate
+2026-05-13 09:52:36,414 [ERROR] QuizPlatform.ai_engine: Ollama service is offline.
+2026-05-13 09:52:36,414 [ERROR] QuizPlatform.ai_engine: Failed to parse AI questions: Expecting value: line 1 column 1 (char 0)
+2026-05-13 10:47:39,685 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 10:47:51,618 [INFO] QuizPlatform.ui.login_ui: User 'ali' logged in as Student
+2026-05-13 10:48:01,284 [ERROR] QuizPlatform.ai_engine: AI call failed: 404 Client Error: Not Found for url: http://localhost:11434/api/generate
+2026-05-13 10:48:54,934 [ERROR] __main__: AI call failed: 404 Client Error: Not Found for url: http://localhost:11434/api/generate
+2026-05-13 10:50:36,191 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 10:50:43,928 [INFO] QuizPlatform.ui.login_ui: User 'ali' logged in as Student
+2026-05-13 11:02:39,615 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 11:02:46,097 [INFO] QuizPlatform.ui.login_ui: User 'ali' logged in as Student
+2026-05-13 11:11:00,635 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 11:11:15,235 [INFO] QuizPlatform.ui.login_ui: User 'ali' logged in as Student
+2026-05-13 11:13:57,874 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 11:14:05,012 [INFO] QuizPlatform.ui.login_ui: User 'ali' logged in as Student
+2026-05-13 11:26:14,763 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 11:26:25,509 [INFO] QuizPlatform.ui.login_ui: User 'student1' logged in as Student
+2026-05-13 11:34:04,492 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 11:34:15,751 [INFO] QuizPlatform.ui.login_ui: User 'student1' logged in as Student
+2026-05-13 12:20:26,754 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 12:20:42,454 [INFO] QuizPlatform.ui.login_ui: User 'student1' logged in as Student
+2026-05-13 12:24:23,270 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 12:24:39,857 [INFO] QuizPlatform.ui.login_ui: User 'student1' logged in as Student
+2026-05-13 12:27:31,840 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 12:27:48,334 [INFO] QuizPlatform.ui.login_ui: User 'student1' logged in as Student
+2026-05-13 12:29:20,400 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 12:29:29,883 [INFO] QuizPlatform.ui.login_ui: User 'student1' logged in as Student
+2026-05-13 12:30:24,617 [INFO] QuizPlatform.ui.login_ui: User 'admin' logged in as Admin
+2026-05-13 12:34:37,494 [INFO] QuizPlatform.database.db_setup: Tables checked/created successfully.
+2026-05-13 12:34:46,740 [INFO] QuizPlatform.ui.login_ui: User 'ali' logged in as Student
+2026-05-13 12:35:03,537 [INFO] QuizPlatform.ui.login_ui: User 'admin' logged in as Admin
+2026-05-13 12:37:57,559 [INFO] QuizPlatform.ui.login_ui: User 'ali' logged in as Student
+2026-05-13 12:38:38,037 [INFO] QuizPlatform.ui.login_ui: User 'admin' logged in as Admin

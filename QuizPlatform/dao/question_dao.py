@@ -91,6 +91,24 @@ class QuestionDAO:
             logger.error(f"Error deleting question: {e}")
             raise QuizDatabaseError(f"Failed to delete question: {e}")
 
+    def delete_all_questions(self):
+        """Deletes all questions and their references from the database"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                # Clear all related data first from all junction/link tables
+                cursor.execute("DELETE FROM ExamQuestions")
+                cursor.execute("DELETE FROM StudentAnswers")
+                cursor.execute("DELETE FROM HintLogs")
+                
+                # Finally, delete all questions
+                cursor.execute("DELETE FROM Questions")
+                conn.commit()
+                return True
+        except Exception as e:
+            logger.error(f"Error deleting all questions: {e}")
+            raise QuizDatabaseError(f"Failed to delete all questions: {e}")
+
     def search_questions(self, subject=None, difficulty=None, topic=None):
         try:
             with self.get_connection() as conn:

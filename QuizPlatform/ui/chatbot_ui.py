@@ -1,83 +1,71 @@
 """
 filename: chatbot_ui.py
-module: AI Study Chatbot UI
+changes made: Added streaming AI support, word-by-word response, and conversation history persistence.
 author: Talha Ahmad
-date: 2026-05-12
-Sprint: 4 - AI Chatbot
 """
 
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                              QPushButton, QLineEdit, QScrollArea, QFrame, QSizePolicy)
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
+                               QPushButton, QLineEdit, QScrollArea, QFrame, QSizePolicy)
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 
-from QuizPlatform.ai_engine import AIEngine
-from QuizPlatform.exceptions import QuizAIError
+from QuizPlatform.ai_engine import (
+    AIWorkerStream,
+    CHAT_CONTEXT
+)
 from QuizPlatform.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-
-class ChatThread(QThread):
-    """Background thread for AI chatbot responses"""
-    response_ready = pyqtSignal(str)
-    error_occurred = pyqtSignal(str)
-
-    def __init__(self, query, history):
-        super().__init__()
-        self.query = query
-        self.history = history
-        self.ai = AIEngine()
-
-    def run(self):
-        try:
-            response = self.ai.chat_response(self.query, self.history)
-            self.response_ready.emit(response)
-        except QuizAIError as e:
-            self.error_occurred.emit(str(e))
-        except Exception as e:
-            self.error_occurred.emit(f"Unexpected error: {e}")
-
-
 class ChatBubble(QFrame):
     """A single chat message bubble"""
 
-    def __init__(self, text, is_user=True):
+    def __init__(self, text, is_user=True, is_italic=False):
         super().__init__()
         layout = QHBoxLayout(self)
         layout.setContentsMargins(8, 4, 8, 4)
 
-        bubble = QLabel(text)
-        bubble.setWordWrap(True)
-        bubble.setFont(QFont("Segoe UI", 10))
-        bubble.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        bubble.setMaximumWidth(480)
-        bubble.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.bubble = QLabel(text)
+        self.bubble.setWordWrap(True)
+        font = QFont("Segoe UI", 10)
+        if is_italic:
+            font.setItalic(True)
+        self.bubble.setFont(font)
+        self.bubble.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        self.bubble.setMaximumWidth(480)
+        self.bubble.setTextInteractionFlags(Qt.TextSelectableByMouse)
 
         if is_user:
-            bubble.setStyleSheet("""
+            self.bubble.setStyleSheet("""
                 background-color: #1565C0; color: white;
                 border-radius: 12px; padding: 10px 14px;
             """)
             layout.addStretch()
-            layout.addWidget(bubble)
+            layout.addWidget(self.bubble)
         else:
-            bubble.setStyleSheet("""
-                background-color: #F5F5F5; color: #1A1A2E;
+            color = "gray" if is_italic else "#1A1A2E"
+            self.bubble.setStyleSheet(f"""
+                background-color: #F5F5F5; color: {color};
                 border-radius: 12px; padding: 10px 14px;
                 border: 1px solid #E0E0E0;
             """)
-            layout.addWidget(bubble)
+            layout.addWidget(self.bubble)
             layout.addStretch()
 
+    def setText(self, text):
+        self.bubble.setText(text)
 
 class ChatbotUI(QWidget):
-    """AI Study Chatbot screen"""
+    """AI Study Chatbot screen with streaming support"""
 
     def __init__(self, user):
         super().__init__()
         self.user = user
-        self.conversation_history = []
+        # [2] ADD these instance variables
+        self.worker = None
+        self.current_ai_bubble = None
+        self.chat_history = []
+        self.full_ai_response = ""
         self._build_ui()
 
     def _build_ui(self):
@@ -102,20 +90,25 @@ class ChatbotUI(QWidget):
         layout.addLayout(hdr)
 
         # Chat window
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setStyleSheet("border: 1px solid #E0E0E0; border-radius: 12px; background-color: white;")
+        self.chat_scroll = QScrollArea()
+        self.chat_scroll.setWidgetResizable(True)
+        self.chat_scroll.setStyleSheet("border: 1px solid #E0E0E0; border-radius: 12px; background-color: white;")
 
         self.chat_container = QWidget()
         self.chat_layout = QVBoxLayout(self.chat_container)
         self.chat_layout.setAlignment(Qt.AlignTop)
         self.chat_layout.setSpacing(8)
         self.chat_layout.setContentsMargins(12, 12, 12, 12)
-        self.scroll_area.setWidget(self.chat_container)
-        layout.addWidget(self.scroll_area)
+        self.chat_scroll.setWidget(self.chat_container)
+        layout.addWidget(self.chat_scroll)
 
         # Welcome message
-        self._add_bot_bubble("👋 Hello! I'm your AI study assistant powered by Mistral. Ask me anything about your coursework — algorithms, OOP, databases, or any subject you're studying!")
+        self.add_bubble(
+            "🤖 👋 Hello! I'm your AI study "
+            "assistant powered by Mistral. "
+            "Ask me anything about your coursework!",
+            sender="ai"
+        )
 
         # Input area
         input_frame = QFrame()
@@ -123,16 +116,16 @@ class ChatbotUI(QWidget):
         input_layout = QHBoxLayout(input_frame)
         input_layout.setContentsMargins(12, 8, 8, 8)
 
-        self.msg_input = QLineEdit()
-        self.msg_input.setPlaceholderText("Ask any study question here...")
-        self.msg_input.setFont(QFont("Segoe UI", 11))
-        self.msg_input.setStyleSheet("border: none; background: transparent; color: #1A1A2E;")
-        self.msg_input.returnPressed.connect(self.send_message)
-        input_layout.addWidget(self.msg_input)
+        self.input_field = QLineEdit()
+        self.input_field.setPlaceholderText("Ask any study question here...")
+        self.input_field.setFont(QFont("Segoe UI", 11))
+        self.input_field.setStyleSheet("border: none; background: transparent; color: #1A1A2E;")
+        self.input_field.returnPressed.connect(self.send_message)
+        input_layout.addWidget(self.input_field)
 
         self.btn_send = QPushButton("Send ➤")
-        self.btn_send.setFixedHeight(38)
-        self.btn_send.setFixedWidth(90)
+        self.btn_send.setFixedHeight(44)
+        self.btn_send.setFixedWidth(110)
         self.btn_send.setStyleSheet("""
             QPushButton { background-color: #1565C0; color: white; border-radius: 8px; border: none; font-weight: bold; }
             QPushButton:hover { background-color: #0D47A1; }
@@ -140,70 +133,189 @@ class ChatbotUI(QWidget):
         """)
         self.btn_send.clicked.connect(self.send_message)
         input_layout.addWidget(self.btn_send)
+
+        self.btn_stop = QPushButton("Stop ⏹")
+        self.btn_stop.setFixedHeight(44)
+        self.btn_stop.setFixedWidth(100)
+        self.btn_stop.setStyleSheet("""
+            QPushButton { background-color: #C62828; color: white; border-radius: 8px; border: none; font-weight: bold; }
+            QPushButton:hover { background-color: #B71C1C; }
+        """)
+        self.btn_stop.clicked.connect(self.stop_generation)
+        self.btn_stop.hide()
+        input_layout.addWidget(self.btn_stop)
+
         layout.addWidget(input_frame)
 
+    # Helper method for consistent bubble adding
+    def add_bubble(self, text, sender="user"):
+        is_user = (sender == "user")
+        bubble = ChatBubble(text, is_user=is_user)
+        self.chat_layout.addWidget(bubble)
+        # Scroll to bottom
+        scrollbar = self.chat_scroll.verticalScrollBar()
+        scrollbar.setValue(scrollbar.maximum())
+        return bubble
+
+    # [3] REWRITE send_message() method:
     def send_message(self):
-        text = self.msg_input.text().strip()
-        if not text:
+        """
+        Sends student message and starts streaming
+        AI response. Disables input while streaming.
+        """
+        message = self.input_field.text().strip()
+        if not message:
             return
 
-        self.msg_input.clear()
-        self.btn_send.setEnabled(False)
-        self.btn_send.setText("⏳")
+        # Clear input immediately
+        self.input_field.clear()
 
-        # Add user bubble
-        self._add_user_bubble(text)
-        self.conversation_history.append({'role': 'User', 'content': text})
+        # Add student bubble to chat
+        self.add_bubble(message, sender="user")
 
-        # Add temporary "Thinking..." bubble
-        self.thinking_bubble = ChatBubble("🤖 Thinking...", is_user=False)
-        self.chat_layout.addWidget(self.thinking_bubble)
-        self._scroll_to_bottom()
-
-        # Start thread
-        self.thread = ChatThread(text, self.conversation_history[:])
-        self.thread.response_ready.connect(self._on_response)
-        self.thread.error_occurred.connect(self._on_error)
-        self.thread.finished.connect(lambda: self.btn_send.setEnabled(True))
-        self.thread.finished.connect(lambda: self.btn_send.setText("Send ➤"))
-        self.thread.start()
-
-    def _on_response(self, response):
-        if hasattr(self, 'thinking_bubble'):
-            self.chat_layout.removeWidget(self.thinking_bubble)
-            self.thinking_bubble.deleteLater()
-        
-        self._add_bot_bubble(response)
-        self.conversation_history.append({'role': 'Assistant', 'content': response})
-        self._scroll_to_bottom()
-
-    def _on_error(self, error):
-        if hasattr(self, 'thinking_bubble'):
-            self.chat_layout.removeWidget(self.thinking_bubble)
-            self.thinking_bubble.deleteLater()
-            
-        self._add_bot_bubble(f"⚠ Error: {error}")
-        self._scroll_to_bottom()
-
-    def _add_user_bubble(self, text):
-        bubble = ChatBubble(text, is_user=True)
-        self.chat_layout.addWidget(bubble)
-        self._scroll_to_bottom()
-
-    def _add_bot_bubble(self, text):
-        bubble = ChatBubble(f"🤖 {text}", is_user=False)
-        self.chat_layout.addWidget(bubble)
-        self._scroll_to_bottom()
-
-    def _scroll_to_bottom(self):
-        self.scroll_area.verticalScrollBar().setValue(
-            self.scroll_area.verticalScrollBar().maximum()
+        # Save to history
+        self.chat_history.append(
+            f"Student: {message}"
         )
 
+        # UI State change
+        self.input_field.setEnabled(False)
+        self.btn_send.hide()
+        self.btn_stop.show()
+
+        # Create empty AI bubble that will fill up
+        self.full_ai_response = ""
+        self.current_ai_bubble = self.add_bubble(
+            "", sender="ai"
+        )
+
+        # Build prompt with chat context + history
+        history_text = "\n".join(
+            self.chat_history[-6:]
+        )
+        prompt = (
+            f"{CHAT_CONTEXT}\n\n"
+            f"Conversation so far:\n{history_text}\n\n"
+            f"AI Assistant:"
+        )
+
+        # Start streaming worker
+        self.worker = AIWorkerStream(prompt=prompt)
+        self.worker.token_received.connect(
+            self.on_token_received
+        )
+        self.worker.stream_done.connect(
+            self.on_stream_done
+        )
+        self.worker.error_occurred.connect(
+            self.on_stream_error
+        )
+        self.worker.start()
+
+    def stop_generation(self):
+        """Halts the AI worker and cleans up UI"""
+        if self.worker and self.worker.isRunning():
+            self.worker.terminate()
+            self.worker.wait()
+            self.full_ai_response += " [Stopped by User]"
+            if self.current_ai_bubble:
+                self.current_ai_bubble.setText("🤖 " + self.full_ai_response)
+            self.on_stream_done(self.full_ai_response)
+
+    # [4] ADD on_token_received(self, token) method:
+    def on_token_received(self, token):
+        """
+        Appends each streamed token to the
+        current AI chat bubble in real time.
+        Scrolls chat to bottom automatically.
+
+        Args:
+            token (str): Single token from stream.
+        """
+        self.full_ai_response += token
+        if self.current_ai_bubble:
+            self.current_ai_bubble.setText(
+                "🤖 " + self.full_ai_response
+            )
+        # Auto scroll to bottom
+        scrollbar = self.chat_scroll.verticalScrollBar()
+        scrollbar.setValue(scrollbar.maximum())
+
+    # [5] ADD on_stream_done(self, full_response) method:
+    def on_stream_done(self, full_response):
+        """
+        Called when streaming is complete.
+        Re-enables input and saves response
+        to chat history.
+
+        Args:
+            full_response (str): Complete AI response.
+        """
+        # Save AI response to history
+        self.chat_history.append(
+            f"AI Assistant: {full_response}"
+        )
+
+        # Keep history to last 10 exchanges max
+        if len(self.chat_history) > 20:
+            self.chat_history = self.chat_history[-20:]
+
+        # Re-enable input
+        self.input_field.setEnabled(True)
+        self.btn_stop.hide()
+        self.btn_send.show()
+        self.btn_send.setEnabled(True)
+        self.btn_send.setText("Send ➤")
+        self.input_field.setFocus()
+
+        # Final scroll to bottom
+        scrollbar = self.chat_scroll.verticalScrollBar()
+        scrollbar.setValue(scrollbar.maximum())
+
+    # [6] ADD on_stream_error(self, error) method:
+    def on_stream_error(self, error):
+        """
+        Called when streaming fails.
+        Removes empty AI bubble, shows error
+        bubble, and re-enables input.
+
+        Args:
+            error (str): Error message.
+        """
+        # Update the empty bubble to show error
+        if self.current_ai_bubble:
+            self.current_ai_bubble.setText(
+                "⚠️ " + error
+            )
+
+        # Re-enable input
+        self.input_field.setEnabled(True)
+        self.btn_stop.hide()
+        self.btn_send.show()
+        self.btn_send.setEnabled(True)
+        self.btn_send.setText("Send ➤")
+
+    # [7] REWRITE clear_chat() method:
     def clear_chat(self):
-        self.conversation_history = []
+        """
+        Clears all chat bubbles and resets
+        conversation history completely.
+        """
+        # Clear all bubble widgets from layout
         while self.chat_layout.count():
             item = self.chat_layout.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
-        self._add_bot_bubble("Chat cleared! How can I help you study today?")
+
+        # Reset state
+        self.chat_history = []
+        self.full_ai_response = ""
+        self.current_ai_bubble = None
+
+        # Show welcome message again
+        self.add_bubble(
+            "🤖 👋 Hello! I'm your AI study "
+            "assistant powered by Mistral. "
+            "Ask me anything about your coursework!",
+            sender="ai"
+        )

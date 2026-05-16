@@ -108,11 +108,11 @@ class CreateExamDialog(QDialog):
 
         btn_col = QVBoxLayout()
         btn_add_q = QPushButton("Add →")
-        btn_add_q.setFixedHeight(40)
+        btn_add_q.setFixedHeight(44)
         btn_add_q.setStyleSheet("background-color: #2E7D32; color: white; font-weight: bold; border-radius: 6px;")
         btn_add_q.clicked.connect(self._add_selected)
         btn_rem_q = QPushButton("← Remove")
-        btn_rem_q.setFixedHeight(40)
+        btn_rem_q.setFixedHeight(44)
         btn_rem_q.setStyleSheet("background-color: #C62828; color: white; font-weight: bold; border-radius: 6px;")
         btn_rem_q.clicked.connect(self._remove_selected)
         btn_col.addStretch()
@@ -279,8 +279,8 @@ class ExamBuilderUI(QWidget):
         hdr.addWidget(title)
         hdr.addStretch()
         btn_create = QPushButton("➕ Create New Exam")
-        btn_create.setFixedWidth(180)
-        btn_create.setFixedHeight(38)
+        btn_create.setFixedWidth(200)
+        btn_create.setFixedHeight(46)
         btn_create.setStyleSheet("""
             QPushButton { background-color: #2E7D32; color: white; border-radius: 8px; font-weight: bold; }
             QPushButton:hover { background-color: #1B5E20; }

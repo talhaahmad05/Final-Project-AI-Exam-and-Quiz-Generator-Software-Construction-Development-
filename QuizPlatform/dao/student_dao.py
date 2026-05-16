@@ -144,3 +144,26 @@ class StudentDAO:
         except Exception as e:
             logger.error(f"Error deleting student: {e}")
             raise QuizDatabaseError(f"Failed to delete student: {e}")
+
+    def update_student(self, student_id, username, password, full_name):
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                if password:
+                    pwd_hash = hashlib.sha256(password.encode()).hexdigest()
+                    cursor.execute("""
+                        UPDATE Users 
+                        SET username=?, password_hash=?, full_name=?
+                        WHERE id=? AND role='Student'
+                    """, (username, pwd_hash, full_name, student_id))
+                else:
+                    cursor.execute("""
+                        UPDATE Users 
+                        SET username=?, full_name=?
+                        WHERE id=? AND role='Student'
+                    """, (username, full_name, student_id))
+                conn.commit()
+                return True
+        except Exception as e:
+            logger.error(f"Error updating student: {e}")
+            raise QuizDatabaseError(f"Failed to update student. Username may already be in use.")

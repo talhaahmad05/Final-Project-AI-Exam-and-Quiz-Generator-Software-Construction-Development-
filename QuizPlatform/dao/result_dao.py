@@ -26,14 +26,32 @@ class ResultDAO:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                # 1. Insert into Results
-                cursor.execute("""
-                    INSERT INTO Results (exam_id, student_id, score, percentage, time_taken, feedback)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, (exam_id, student_id, score, percentage, time_taken, feedback))
-                cursor.execute("SELECT CAST(SCOPE_IDENTITY() AS INT)")
-                row = cursor.fetchone()
-                result_id = row[0] if row else -1
+                
+                # 1. Insert into Results and retrieve the new ID
+                # Using OUTPUT INSERTED.id is generally more reliable in SQL Server
+                try:
+                    cursor.execute("""
+                        INSERT INTO Results (exam_id, student_id, score, percentage, time_taken, feedback)
+                        OUTPUT INSERTED.id
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (exam_id, student_id, score, percentage, time_taken, feedback))
+                    row = cursor.fetchone()
+                    if row and row[0] is not None:
+                        result_id = int(row[0])
+                    else:
+                        raise Exception("Empty row returned")
+                except Exception as e:
+                    logger.warning(f"OUTPUT clause failed, falling back to SCOPE_IDENTITY: {e}")
+                    cursor.execute("""
+                        INSERT INTO Results (exam_id, student_id, score, percentage, time_taken, feedback)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (exam_id, student_id, score, percentage, time_taken, feedback))
+                    cursor.execute("SELECT SCOPE_IDENTITY()")
+                    row = cursor.fetchone()
+                    if row and row[0] is not None:
+                        result_id = int(row[0])
+                    else:
+                        raise QuizDatabaseError("Failed to retrieve Result ID after insertion.")
 
                 # 2. Insert into StudentAnswers
                 for ans in student_answers:

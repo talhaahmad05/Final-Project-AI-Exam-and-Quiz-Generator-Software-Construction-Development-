@@ -94,118 +94,166 @@ class LoginScreen(QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
-        # Left dark sidebar
+        # Left Sidebar (300px wide)
         sidebar = QFrame()
-        sidebar.setFixedWidth(380)
+        sidebar.setFixedWidth(300)
         sidebar.setStyleSheet("""
             QFrame {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                              stop:0 #1A1A2E, stop:1 #16213E);
+                background-color: #0f172a;
+                border-right: 1px solid #1e3a5f;
             }
         """)
         sidebar_layout = QVBoxLayout(sidebar)
         sidebar_layout.setAlignment(Qt.AlignCenter)
-        sidebar_layout.setContentsMargins(40, 60, 40, 60)
+        sidebar_layout.setContentsMargins(30, 60, 30, 60)
 
-        logo_label = QLabel("🧠")
-        logo_label.setFont(QFont("Segoe UI", 64))
-        logo_label.setAlignment(Qt.AlignCenter)
-        logo_label.setStyleSheet("background: transparent;")
-        sidebar_layout.addWidget(logo_label)
+        # Brain icon with subtle pink glow
+        self.logo_label = QLabel("🧠")
+        self.logo_label.setFont(QFont("Segoe UI", 72))
+        self.logo_label.setAlignment(Qt.AlignCenter)
+        self.logo_label.setStyleSheet("""
+            color: #e91e8c;
+            background: transparent;
+        """)
+        # Adding a shadow effect for the "glow"
+        from PyQt5.QtWidgets import QGraphicsDropShadowEffect
+        glow = QGraphicsDropShadowEffect()
+        glow.setBlurRadius(25)
+        glow.setColor(__import__('PyQt5.QtGui', fromlist=['QColor']).QColor("#e91e8c"))
+        glow.setOffset(0, 0)
+        self.logo_label.setGraphicsEffect(glow)
+        sidebar_layout.addWidget(self.logo_label)
 
         title_label = QLabel("QuizAI Platform")
         title_label.setFont(QFont("Segoe UI", 22, QFont.Bold))
-        title_label.setStyleSheet("color: white; background: transparent;")
+        title_label.setStyleSheet("color: white; background: transparent; margin-top: 10px;")
         title_label.setAlignment(Qt.AlignCenter)
         sidebar_layout.addWidget(title_label)
 
-        subtitle = QLabel("Talha Ahmad\nFA-24 BSSE 009 | Section A\nLahore Garrison University")
-        subtitle.setFont(QFont("Segoe UI", 10))
-        subtitle.setStyleSheet("color: #90CAF9; margin-top: 10px; background: transparent;")
-        subtitle.setAlignment(Qt.AlignCenter)
-        sidebar_layout.addWidget(subtitle)
+        student_info = QLabel("Talha Ahmad\nFA-24 BSSE 009 | Section A\nLahore Garrison University")
+        student_info.setFont(QFont("Segoe UI", 10))
+        student_info.setStyleSheet("color: #94a3b8; margin-top: 20px; background: transparent;")
+        student_info.setAlignment(Qt.AlignCenter)
+        sidebar_layout.addWidget(student_info)
 
         sidebar_layout.addStretch()
 
-        subject_label = QLabel("Software Construction & Development\nInstructor: Sir Ali Haider Naqvi")
-        subject_label.setFont(QFont("Segoe UI", 9))
-        subject_label.setStyleSheet("color: #78909C; background: transparent;")
-        subject_label.setAlignment(Qt.AlignCenter)
-        sidebar_layout.addWidget(subject_label)
+        course_info = QLabel("Software Construction & Development\nInstructor: Sir Ali Haider Naqvi")
+        course_info.setFont(QFont("Segoe UI", 9))
+        course_info.setStyleSheet("color: #94a3b8; background: transparent;")
+        course_info.setAlignment(Qt.AlignCenter)
+        sidebar_layout.addWidget(course_info)
 
         main_layout.addWidget(sidebar)
 
-        # Right form area
+        # Right Panel (near black background with radial gradient)
         form_area = QFrame()
-        form_area.setStyleSheet("background-color: #F9FAFB;")
+        form_area.setStyleSheet("""
+            QFrame {
+                background: qradialgradient(cx:0.5, cy:0.5, radius:0.8, fx:0.5, fy:0.5, 
+                                          stop:0 #0d1117, stop:1 #080a0f);
+            }
+        """)
         form_layout = QVBoxLayout(form_area)
         form_layout.setAlignment(Qt.AlignCenter)
-        form_layout.setContentsMargins(80, 0, 80, 0)
+        form_layout.setContentsMargins(60, 0, 60, 0)
 
+        # Login Card (dark slate)
         form_container = QFrame()
-        form_container.setFixedWidth(360)
+        form_container.setFixedWidth(380)
         form_container.setStyleSheet("""
             QFrame {
-                background-color: white;
-                border-radius: 16px;
-                border: 1px solid #E0E0E0;
+                background-color: #1e293b;
+                border-radius: 12px;
+                border: 1px solid #334155;
             }
         """)
         fc_layout = QVBoxLayout(form_container)
-        fc_layout.setContentsMargins(40, 40, 40, 40)
-        fc_layout.setSpacing(16)
+        fc_layout.setContentsMargins(40, 45, 40, 45)
+        fc_layout.setSpacing(18)
 
         welcome = QLabel("Welcome Back")
-        welcome.setFont(QFont("Segoe UI", 20, QFont.Bold))
-        welcome.setStyleSheet("color: #1A1A2E; border: none;")
+        welcome.setFont(QFont("Segoe UI", 22, QFont.Bold))
+        welcome.setStyleSheet("color: white; border: none;")
         fc_layout.addWidget(welcome)
 
-        hint = QLabel("Sign in to your account")
-        hint.setFont(QFont("Segoe UI", 10))
-        hint.setStyleSheet("color: #888888; margin-bottom: 8px; border: none;")
-        fc_layout.addWidget(hint)
+        subtitle = QLabel("Sign in to your account")
+        subtitle.setFont(QFont("Segoe UI", 11))
+        subtitle.setStyleSheet("color: #94a3b8; margin-bottom: 5px; border: none;")
+        fc_layout.addWidget(subtitle)
 
         user_label = QLabel("Username")
-        user_label.setStyleSheet("color: #1A1A2E; font-weight: bold; border: none;")
+        user_label.setStyleSheet("color: white; font-weight: bold; border: none; font-size: 13px;")
         fc_layout.addWidget(user_label)
 
         self.username_input = QLineEdit()
         self.username_input.setPlaceholderText("Enter your username")
-        self.username_input.setFixedHeight(44)
+        self.username_input.setFixedHeight(46)
         self.username_input.setStyleSheet("""
-            QLineEdit { border: 1px solid #DDDDDD; border-radius: 8px; padding: 8px 12px;
-                        font-size: 13px; background-color: #F9FAFB; color: #1A1A2E; }
-            QLineEdit:focus { border: 2px solid #1565C0; background-color: white; }
+            QLineEdit { 
+                border: 1px solid #334155; 
+                border-radius: 6px; 
+                padding: 8px 14px;
+                font-size: 14px; 
+                background-color: #0f172a; 
+                color: white; 
+            }
+            QLineEdit:focus { 
+                border: 2px solid #3b82f6; 
+            }
         """)
         fc_layout.addWidget(self.username_input)
 
         pass_label = QLabel("Password")
-        pass_label.setStyleSheet("color: #1A1A2E; font-weight: bold; border: none;")
+        pass_label.setStyleSheet("color: white; font-weight: bold; border: none; font-size: 13px;")
         fc_layout.addWidget(pass_label)
 
         self.password_input = QLineEdit()
         self.password_input.setPlaceholderText("Enter your password")
         self.password_input.setEchoMode(QLineEdit.Password)
-        self.password_input.setFixedHeight(44)
+        self.password_input.setFixedHeight(46)
         self.password_input.setStyleSheet("""
-            QLineEdit { border: 1px solid #DDDDDD; border-radius: 8px; padding: 8px 12px;
-                        font-size: 13px; background-color: #F9FAFB; color: #1A1A2E; }
-            QLineEdit:focus { border: 2px solid #1565C0; background-color: white; }
+            QLineEdit { 
+                border: 1px solid #334155; 
+                border-radius: 6px; 
+                padding: 8px 14px;
+                font-size: 14px; 
+                background-color: #0f172a; 
+                color: white; 
+            }
+            QLineEdit:focus { 
+                border: 2px solid #3b82f6; 
+            }
         """)
         self.password_input.returnPressed.connect(self._do_login)
         fc_layout.addWidget(self.password_input)
 
         self.btn_login = QPushButton("Sign In")
-        self.btn_login.setFixedHeight(46)
-        self.btn_login.setFont(QFont("Segoe UI", 11, QFont.Bold))
+        self.btn_login.setFixedHeight(50)
+        self.btn_login.setFont(QFont("Segoe UI", 12, QFont.Bold))
+        self.btn_login.setCursor(Qt.PointingHandCursor)
+        self.btn_login.setStyleSheet("""
+            QPushButton {
+                background-color: #e91e8c;
+                color: white;
+                border-radius: 6px;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #f43f9a;
+            }
+            QPushButton:pressed {
+                background-color: #c2185b;
+            }
+        """)
         self.btn_login.clicked.connect(self._do_login)
         fc_layout.addWidget(self.btn_login)
 
-        info_label = QLabel("Default: admin / admin123\nStudents: student1,2,3 / student123")
-        info_label.setFont(QFont("Segoe UI", 9))
-        info_label.setStyleSheet("color: #999999; text-align: center; border: none;")
-        info_label.setAlignment(Qt.AlignCenter)
-        fc_layout.addWidget(info_label)
+        hint_text = QLabel("Default: admin / admin123\nStudents: student1,2,3 / student123")
+        hint_text.setFont(QFont("Segoe UI", 9))
+        hint_text.setStyleSheet("color: #64748b; text-align: center; border: none;")
+        hint_text.setAlignment(Qt.AlignCenter)
+        fc_layout.addWidget(hint_text)
 
         form_layout.addWidget(form_container)
         main_layout.addWidget(form_area)

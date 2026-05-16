@@ -8,6 +8,7 @@ Version: 2.2 (Theme Engine)
 
 import sys
 import os
+import threading
 
 # Add the project root to sys.path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -15,6 +16,7 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from PyQt5.QtWidgets import QApplication, QStackedWidget, QMessageBox
+from QuizPlatform.ai_engine import warm_up_model
 from QuizPlatform.ui.login_ui import LoginScreen
 from QuizPlatform.ui.teacher_dashboard import TeacherDashboard
 from QuizPlatform.ui.student_dashboard import StudentDashboard
@@ -41,12 +43,12 @@ LIGHT_THEME = """
     /* USER REQUESTED: GREEN BACKGROUND, RED TEXT FOR ALL BUTTONS */
     QPushButton { 
         background-color: #2E7D32; 
-        color: #FF0000; 
+        color: #FF1744; 
         border-radius: 8px; 
-        padding: 10px 18px; 
+        padding: 8px 16px; 
         font-weight: bold; 
         border: 2px solid #1B5E20; 
-        font-size: 13px;
+        font-size: 15px;
     }
     QPushButton:hover { background-color: #388E3C; border: 2px solid #FF0000; }
     QPushButton:pressed { background-color: #1B5E20; color: #FF8A80; }
@@ -100,6 +102,13 @@ def main():
         
         window = QuizApp()
         window.show()
+        
+        # Warm up AI model in background
+        threading.Thread(
+            target=warm_up_model,
+            daemon=True
+        ).start()
+        
         sys.exit(app.exec_())
     except Exception as e:
         logger.critical(f"Application failed to start: {e}")

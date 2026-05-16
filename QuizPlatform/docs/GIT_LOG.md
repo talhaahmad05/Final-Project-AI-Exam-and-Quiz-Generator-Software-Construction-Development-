@@ -86,3 +86,8 @@ main
 | 40 | `feature/testing`  | [Docs] Add: All documentation files                      | 2026-05-12 |
 | 41 | `develop`          | [Merge] Merge: feature/testing into develop              | 2026-05-12 |
 | 42 | `main`             | [Release] Merge: develop into main — v1.0.0              | 2026-05-12 |
+| 43 | `feature/ai-perf`  | [AI] Refactor: Implement AIWorker QThread pattern        | 2026-05-13 |
+| 44 | `feature/ai-perf`  | [AI] Optimize: Standardize on mistral:7b-instruct-q4_0   | 2026-05-13 |
+| 45 | `feature/ai-perf`  | [AI] Optimize: Reduce context window and predict tokens  | 2026-05-13 |
+| 46 | `develop`          | [Merge] Merge: feature/ai-perf into develop              | 2026-05-13 |
+| 47 | `main`             | [Release] Version 1.1.0 — AI Performance Optimized       | 2026-05-13 |

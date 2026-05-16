@@ -74,10 +74,9 @@
 3. **ODBC Driver for SQL Server** — [Download](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server)
 4. **Ollama** — [Download](https://ollama.ai/download)
 
-### Step 1: Install Ollama Models
+### Step 1: Install Ollama Model
 ```bash
-ollama pull mistral:7b-instruct
-ollama pull llama3.1:8b
+ollama pull mistral:7b-instruct-q4_0
 ```
 
 ### Step 2: Install Python Dependencies
@@ -184,7 +183,7 @@ QuizPlatform/
 | UI          | PyQt5                          |
 | Database    | Microsoft SQL Server Express   |
 | AI Backend  | Ollama (local LLM)             |
-| AI Models   | mistral:7b-instruct, llama3.1:8b |
+| AI Models   | mistral:7b-instruct-q4_0         |
 | Testing     | unittest + unittest.mock       |
 | Logging     | Python logging module          |
 
