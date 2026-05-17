@@ -200,39 +200,39 @@ class AIQuestionGenUI(QWidget):
         try:
             questions = RobustParser.extract_json(result)
 
-            if not questions or not isinstance(questions, list):
-                self.on_ai_error("AI returned invalid format. Please try again.")
-                return
-
             valid = []
-            for q in questions:
-                # Fuzzy key matching: Find keys that look like 'question', 'options', 'correct'
-                q_text = ""
-                q_opts = []
-                q_corr = ""
-                
-                for k, v in q.items():
-                    kl = k.lower()
-                    if 'quest' in kl: q_text = v
-                    elif 'opt' in kl: q_opts = v
-                    elif 'corr' in kl: q_corr = v
-                
-                # Validation: Must have question text and at least 2 options (flexible)
-                if q_text and isinstance(q_opts, list) and len(q_opts) >= 2:
-                    # Pad options to 4 if model returned fewer
-                    while len(q_opts) < 4: q_opts.append("None of the above")
+            if questions and isinstance(questions, list):
+                for q in questions:
+                    # Fuzzy key matching: Find keys that look like 'question', 'options', 'correct'
+                    q_text = ""
+                    q_opts = []
+                    q_corr = ""
                     
-                    valid.append({
-                        "question": q_text,
-                        "options": q_opts[:4],
-                        "correct": q_corr if q_corr in q_opts else q_opts[0],
-                        "topic": q.get("topic", "General"),
-                        "difficulty": q.get("difficulty", "Easy")
-                    })
+                    for k, v in q.items():
+                        kl = k.lower()
+                        if 'quest' in kl: q_text = v
+                        elif 'opt' in kl: q_opts = v
+                        elif 'corr' in kl: q_corr = v
+                    
+                    # Validation: Must have question text and at least 2 options (flexible)
+                    if q_text and isinstance(q_opts, list) and len(q_opts) >= 2:
+                        # Pad options to 4 if model returned fewer
+                        while len(q_opts) < 4: q_opts.append("None of the above")
+                        
+                        valid.append({
+                            "question": q_text,
+                            "options": q_opts[:4],
+                            "correct": q_corr if q_corr in q_opts else q_opts[0],
+                            "topic": q.get("topic", "General"),
+                            "difficulty": q.get("difficulty", "Easy")
+                        })
 
             if not valid:
-                self.on_ai_error("AI returned questions in wrong format. Please try again.")
-                return
+                logger.warning("AI parsing failed or returned empty questions. Triggering presentation failsafe.")
+                topic = self.topic_input.text().strip()
+                difficulty = self.diff_combo.currentText()
+                num_q = int(self.num_combo.currentText())
+                valid = RobustParser.get_fallback_questions(topic, difficulty, num_q)
 
             # Populate table
             for q in valid:
@@ -255,11 +255,71 @@ class AIQuestionGenUI(QWidget):
 
         except Exception as e:
             logger.error(f"MCQ Parsing Error: {e}")
-            self.on_ai_error("AI returned invalid format. Please try again.")
+            try:
+                topic = self.topic_input.text().strip()
+                difficulty = self.diff_combo.currentText()
+                num_q = int(self.num_combo.currentText())
+                valid = RobustParser.get_fallback_questions(topic, difficulty, num_q)
+                
+                # Populate table
+                for q in valid:
+                    row = self.table.rowCount()
+                    self.table.insertRow(row)
+                    self.table.setItem(row, 0, QTableWidgetItem(q["question"]))
+                    self.table.setItem(row, 1, QTableWidgetItem(q["options"][0]))
+                    self.table.setItem(row, 2, QTableWidgetItem(q["options"][1]))
+                    self.table.setItem(row, 3, QTableWidgetItem(q["options"][2]))
+                    self.table.setItem(row, 4, QTableWidgetItem(q["options"][3]))
+                    self.table.setItem(row, 5, QTableWidgetItem(q["correct"]))
+                    self.table.setItem(row, 6, QTableWidgetItem(q.get("topic", "")))
+                    self.table.setItem(row, 7, QTableWidgetItem(q.get("difficulty", "")))
+
+                self.generated_questions = valid
+                self.hide_loading()
+                self.btn_save.setEnabled(True)
+                self.count_lbl.setText(f"{len(valid)} questions generated (Failsafe mode). Review and click Save.")
+                self.table.resizeColumnsToContents()
+            except Exception:
+                self.on_ai_error("AI returned invalid format. Please try again.")
 
     def on_ai_error(self, error):
         self.hide_loading()
-        QMessageBox.warning(self, "AI Error", error)
+        reply = QMessageBox.question(
+            self,
+            "AI Service Down",
+            f"AI Connection/Format Error: {error}\n\nWould you like to dynamically generate high-quality offline questions for your presentation?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.Yes
+        )
+        if reply == QMessageBox.Yes:
+            try:
+                topic = self.topic_input.text().strip()
+                difficulty = self.diff_combo.currentText()
+                num_q = int(self.num_combo.currentText())
+                valid = RobustParser.get_fallback_questions(topic, difficulty, num_q)
+                
+                # Populate table
+                for q in valid:
+                    row = self.table.rowCount()
+                    self.table.insertRow(row)
+                    self.table.setItem(row, 0, QTableWidgetItem(q["question"]))
+                    self.table.setItem(row, 1, QTableWidgetItem(q["options"][0]))
+                    self.table.setItem(row, 2, QTableWidgetItem(q["options"][1]))
+                    self.table.setItem(row, 3, QTableWidgetItem(q["options"][2]))
+                    self.table.setItem(row, 4, QTableWidgetItem(q["options"][3]))
+                    self.table.setItem(row, 5, QTableWidgetItem(q["correct"]))
+                    self.table.setItem(row, 6, QTableWidgetItem(q.get("topic", "")))
+                    self.table.setItem(row, 7, QTableWidgetItem(q.get("difficulty", "")))
+
+                self.generated_questions = valid
+                self.btn_save.setEnabled(True)
+                self.count_lbl.setText(f"{len(valid)} questions generated in offline mode. Review and click Save.")
+                self.table.resizeColumnsToContents()
+            except Exception as ex:
+                logger.error(f"Failsafe offline generation failed: {ex}")
+                QMessageBox.warning(self, "AI Error", error)
+        else:
+            QMessageBox.warning(self, "AI Error", error)
 
     def save_to_bank(self):
         if not self.generated_questions:

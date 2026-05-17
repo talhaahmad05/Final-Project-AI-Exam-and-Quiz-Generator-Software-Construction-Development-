@@ -79,14 +79,15 @@ class TestPasswordChange(unittest.TestCase):
     def test_valid_password_change(self):
         """Valid password change inputs should pass"""
         try:
-            FormValidator.validate_password_change("old12", "newpass", "newpass")
+            FormValidator.validate_password_change("old12", "newpass12", "newpass12")
         except QuizValidationError:
             self.fail("Should not raise on valid password change")
 
     def test_mismatched_passwords(self):
         """Mismatched new passwords should raise"""
         with self.assertRaises(QuizValidationError):
-            FormValidator.validate_password_change("old12", "newpass", "different")
+            FormValidator.validate_password_change("old12", "newpass12", "different12")
+
 
 
 if __name__ == '__main__':
