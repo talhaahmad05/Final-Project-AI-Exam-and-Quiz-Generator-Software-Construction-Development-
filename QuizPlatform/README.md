@@ -15,7 +15,7 @@
 | **University**   | Lahore Garrison University                 |
 | **Subject**      | Software Construction & Development        |
 | **Instructor**   | Sir Ali Haider Naqvi                       |
-| **Technology**   | Python + PyQt5 + SQL Server + Ollama LLM   |
+| **Technology**   | Python + PyQt5 + SQLite + Dual AI (Ollama Local + Groq Cloud) |
 
 ---
 
@@ -54,13 +54,13 @@
 - Leaderboard per exam (top 5)
 - CSV export for all reports
 
-### 🤖 AI Features (Ollama LLM)
-1. **AI Question Generator** — Generate MCQs from any topic
-2. **AI Result Feedback** — Personalized improvement suggestions
-3. **Hint System** — AI clues during exams (without revealing answers)
-4. **Short Answer Grader** — LLM-based scoring
-5. **Weak Topic Detector** — Identifies student focus areas
-6. **AI Study Chatbot** — Interactive tutor for any subject
+### 🤖 AI Features (Dual Engine: Ollama Local + Groq Cloud)
+- **Dual AI Mode Toggle**: A premium pill-style radio button selector present on all AI-powered screens, enabling instant switching between Local AI and Online AI at any time.
+- **Smart Engine Dispatcher**: Automated fallback to local Ollama (Mistral 7B) if online Groq network queries time out.
+- **AI Question Generator** — Generates customized MCQ sets from any topic and difficulty level.
+- **AI Result Feedback** — Dynamic scorecard critique and detailed weak topic identification.
+- **Hint System** — Cognitive hint generator during exams.
+- **AI Study Chatbot** — Interactive tutor with streaming mode (Ollama) or fast API completions (Groq).
 
 ---
 
@@ -68,13 +68,11 @@
 
 ### Prerequisites
 1. **Python 3.9+** — [Download](https://www.python.org/downloads/)
-2. **Microsoft SQL Server Express** — [Download](https://www.microsoft.com/en-us/sql-server/sql-server-downloads)
-   - Instance: `TalhaMughal\SQLEXPRESS`
-   - Windows Authentication enabled
-3. **ODBC Driver for SQL Server** — [Download](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server)
-4. **Ollama** — [Download](https://ollama.ai/download)
+2. **SQLite Database** — Built-in, no external DB configuration required
+3. **Ollama (Local LLM)** — [Download](https://ollama.ai/download)
+4. **Groq Cloud API Key** — Configured in `config.py`
 
-### Step 1: Install Ollama Model
+### Step 1: Install Local Ollama Model
 ```bash
 ollama pull mistral:7b-instruct-q4_0
 ```
@@ -85,13 +83,12 @@ cd QuizPlatform
 pip install -r requirements.txt
 ```
 
-### Step 3: Configure Database (Optional)
-Edit `config.ini` if your SQL Server instance is different:
-```ini
-[Database]
-Server = TalhaMughal\SQLEXPRESS
-Database = QuizAIPlatform
-Trusted_Connection = yes
+### Step 3: Configure AI & API Settings (Optional)
+Check or modify settings in `config.py` or `config.ini`:
+```python
+# config.py
+GROQ_API_KEY = "gsk_k015by..." # Configured automatically
+DEFAULT_AI_MODE = "online"      # Options: "local" or "online"
 ```
 
 ### Step 4: Run the Application
@@ -100,7 +97,7 @@ python main.py
 ```
 
 On first run, the app automatically:
-- Creates the `QuizAIPlatform` database
+- Creates the local `QuizPlatform.db` SQLite database
 - Creates all required tables
 - Inserts seed data (users, questions, sample exam)
 
@@ -132,9 +129,9 @@ QuizPlatform/
 ├── config.ini                 # DB and AI configuration
 ├── requirements.txt           # Dependencies
 ├── exceptions.py              # Custom exception classes
-├── ai_engine.py               # All Ollama LLM calls
+├── ai_engine.py               # AI Engine (Ollama & Groq dispatcher)
 ├── database/
-│   └── db_setup.py            # Schema & seed data
+│   └── db_setup.py            # SQLite schema & seed data
 ├── dao/
 │   ├── student_dao.py         # User/auth operations
 │   ├── exam_dao.py            # Exam CRUD
@@ -146,11 +143,11 @@ QuizPlatform/
 │   ├── student_dashboard.py   # Student dashboard
 │   ├── question_bank_ui.py    # Question management
 │   ├── exam_builder_ui.py     # Exam creation
-│   ├── exam_taking_ui.py      # Live exam screen
-│   ├── result_ui.py           # Results & review
+│   ├── exam_taking_ui.py      # Live exam screen (AI hint + selector)
+│   ├── result_ui.py           # Results & AI insights
 │   ├── reports_ui.py          # Analytics & export
-│   ├── ai_question_gen_ui.py  # AI question generator
-│   └── chatbot_ui.py          # AI study chatbot
+│   ├── ai_question_gen_ui.py  # AI question generator (AI selector)
+│   └── chatbot_ui.py          # AI study chatbot (AI Selector)
 ├── utils/
 │   ├── form_validator.py      # Input validation
 │   └── logger.py              # Error logging
@@ -181,9 +178,10 @@ QuizPlatform/
 |-------------|--------------------------------|
 | Language    | Python 3.11                    |
 | UI          | PyQt5                          |
-| Database    | Microsoft SQL Server Express   |
-| AI Backend  | Ollama (local LLM)             |
-| AI Models   | mistral:7b-instruct-q4_0         |
+| Database    | SQLite Embedded DBMS           |
+| Local AI    | Ollama Local LLM Engine        |
+| Online AI   | Groq Cloud API Gateway         |
+| LLM Models  | mistral:7b (Local) & Llama-3.1-8b (Online) |
 | Testing     | unittest + unittest.mock       |
 | Logging     | Python logging module          |
 

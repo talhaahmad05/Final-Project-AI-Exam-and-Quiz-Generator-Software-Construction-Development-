@@ -1,16 +1,17 @@
 """
 filename: chatbot_ui.py
-changes made: Added streaming AI support, word-by-word response, and conversation history persistence.
+changes made: Added local/online chatbot selector, integrated Groq non-streaming smart dispatcher, and updated message sending logic.
 author: Talha Ahmad
 """
 
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                               QPushButton, QLineEdit, QScrollArea, QFrame, QSizePolicy)
+                               QPushButton, QLineEdit, QScrollArea, QFrame, QSizePolicy,
+                               QRadioButton, QButtonGroup)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 
 from QuizPlatform.ai_engine import (
-    AIWorkerStream,
+    AIWorkerStream, AIWorkerSmart,
     CHAT_CONTEXT
 )
 from QuizPlatform.utils.logger import get_logger
@@ -79,6 +80,41 @@ class ChatbotUI(QWidget):
         title.setFont(QFont("Segoe UI", 18, QFont.Bold))
         title.setStyleSheet("color: #1A1A2E;")
         hdr.addWidget(title)
+
+        # ── Chat AI Mode Selector ──────────────────
+        self.rb_local_chat  = QRadioButton("🖥️ Local")
+        self.rb_online_chat = QRadioButton("⚡ Groq")
+        self.rb_local_chat.setChecked(True)
+        self.chat_mode_group = QButtonGroup(self)
+        self.chat_mode_group.addButton(self.rb_local_chat)
+        self.chat_mode_group.addButton(self.rb_online_chat)
+
+        rb_style = """
+            QRadioButton {
+                font-size: 13px;
+                padding: 5px 14px;
+                border-radius: 10px;
+                background: #F0F4FF;
+                color: #1F4E79;
+                font-weight: 500;
+            }
+            QRadioButton::indicator {
+                width: 0px; height: 0px;
+            }
+            QRadioButton:checked {
+                background: #1F4E79;
+                color: white;
+                font-weight: bold;
+            }
+            QRadioButton:hover {
+                background: #D0E4F7;
+            }
+        """
+        self.rb_local_chat.setStyleSheet(rb_style)
+        self.rb_online_chat.setStyleSheet(rb_style)
+
+        hdr.addWidget(self.rb_local_chat)
+        hdr.addWidget(self.rb_online_chat)
         hdr.addStretch()
         ai_badge = QLabel("✨ Powered by Mistral 7B")
         ai_badge.setStyleSheet("background-color: #E3F2FD; color: #1565C0; border-radius: 12px; padding: 4px 10px; font-size: 10px;")
@@ -158,59 +194,94 @@ class ChatbotUI(QWidget):
         return bubble
 
     # [3] REWRITE send_message() method:
+    def get_chat_mode(self):
+        return "online" if self.rb_online_chat.isChecked() else "local"
+
     def send_message(self):
-        """
-        Sends student message and starts streaming
-        AI response. Disables input while streaming.
-        """
         message = self.input_field.text().strip()
         if not message:
             return
 
-        # Clear input immediately
         self.input_field.clear()
-
-        # Add student bubble to chat
         self.add_bubble(message, sender="user")
-
-        # Save to history
         self.chat_history.append(
             f"Student: {message}"
         )
 
-        # UI State change
         self.input_field.setEnabled(False)
-        self.btn_send.hide()
-        self.btn_stop.show()
+        self.btn_send.setEnabled(False)
+        self.btn_send.setText("...")
 
-        # Create empty AI bubble that will fill up
-        self.full_ai_response = ""
-        self.current_ai_bubble = self.add_bubble(
-            "", sender="ai"
-        )
-
-        # Build prompt with chat context + history
         history_text = "\n".join(
             self.chat_history[-6:]
         )
         prompt = (
             f"{CHAT_CONTEXT}\n\n"
-            f"Conversation so far:\n{history_text}\n\n"
+            f"Conversation:\n{history_text}\n\n"
             f"AI Assistant:"
         )
 
-        # Start streaming worker
-        self.worker = AIWorkerStream(prompt=prompt)
-        self.worker.token_received.connect(
-            self.on_token_received
+        mode = self.get_chat_mode()
+
+        if mode == "online":
+            # Groq is fast — use AIWorkerSmart
+            # No streaming needed (already fast)
+            self.current_ai_bubble = self.add_bubble(
+                "⚡ Thinking...", sender="ai"
+            )
+            self.worker = AIWorkerSmart(
+                prompt=prompt, mode="online"
+            )
+            self.worker.result_ready.connect(
+                self.on_groq_result
+            )
+            self.worker.error_occurred.connect(
+                self.on_stream_error
+            )
+            self.worker.start()
+        else:
+            # Local Ollama — use streaming
+            self.btn_send.hide()
+            self.btn_stop.show()
+            self.full_ai_response = ""
+            self.current_ai_bubble = self.add_bubble(
+                "", sender="ai"
+            )
+            self.worker = AIWorkerStream(
+                prompt=prompt
+            )
+            self.worker.token_received.connect(
+                self.on_token_received
+            )
+            self.worker.stream_done.connect(
+                self.on_stream_done
+            )
+            self.worker.error_occurred.connect(
+                self.on_stream_error
+            )
+            self.worker.start()
+
+    def on_groq_result(self, result):
+        """
+        Handles Groq response for chatbot.
+        Updates bubble and re-enables input.
+        """
+        if self.current_ai_bubble:
+            self.current_ai_bubble.setText(
+                "🤖 " + result
+            )
+        self.chat_history.append(
+            f"AI Assistant: {result}"
         )
-        self.worker.stream_done.connect(
-            self.on_stream_done
-        )
-        self.worker.error_occurred.connect(
-            self.on_stream_error
-        )
-        self.worker.start()
+        if len(self.chat_history) > 20:
+            self.chat_history = \
+                self.chat_history[-20:]
+        self.input_field.setEnabled(True)
+        self.btn_send.setEnabled(True)
+        self.btn_send.setText("Send ➤")
+        self.input_field.setFocus()
+        scrollbar = self.chat_scroll.verticalScrollBar()
+        scrollbar.setValue(scrollbar.maximum())
 
     def stop_generation(self):
         """Halts the AI worker and cleans up UI"""

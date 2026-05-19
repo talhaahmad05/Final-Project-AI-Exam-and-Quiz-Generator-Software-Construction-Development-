@@ -1,8 +1,7 @@
 """
 filename: exam_taking_ui.py
-what was changed: Implemented AIWorker for hints, updated SubmissionWorker to use new ask_ai, and added hint UI logic.
+changes made: Added local/online hint selector and integrated AIWorkerSmart dispatcher for hints.
 author: Talha Ahmad
-date: 2026-05-13
 """
 
 import random
@@ -16,7 +15,7 @@ from PyQt5.QtGui import QFont
 
 from QuizPlatform.dao.exam_dao import ExamDAO
 from QuizPlatform.dao.result_dao import ResultDAO
-from QuizPlatform.ai_engine import ask_ai, AIWorker, HINT_PROMPT, GRADING_PROMPT, FEEDBACK_PROMPT
+from QuizPlatform.ai_engine import ask_ai, AIWorker, AIWorkerSmart, HINT_PROMPT, GRADING_PROMPT, FEEDBACK_PROMPT
 from QuizPlatform.exceptions import QuizDatabaseError
 from QuizPlatform.utils.logger import get_logger
 
@@ -213,12 +212,45 @@ class ExamTakingUI(QWidget):
         self.btn_flag.clicked.connect(self._toggle_flag)
         nav_row.addWidget(self.btn_flag)
 
+        self.rb_hint_local  = QRadioButton("🖥️")
+        self.rb_hint_online = QRadioButton("⚡")
+        self.rb_hint_local.setChecked(True)
+        self.hint_mode_group = QButtonGroup(self)
+        self.hint_mode_group.addButton(self.rb_hint_local)
+        self.hint_mode_group.addButton(self.rb_hint_online)
+
+        rb_style = """
+            QRadioButton {
+                font-size: 13px;
+                padding: 5px 14px;
+                border-radius: 10px;
+                background: #F0F4FF;
+                color: #1F4E79;
+                font-weight: 500;
+            }
+            QRadioButton::indicator {
+                width: 0px; height: 0px;
+            }
+            QRadioButton:checked {
+                background: #1F4E79;
+                color: white;
+                font-weight: bold;
+            }
+            QRadioButton:hover {
+                background: #D0E4F7;
+            }
+        """
+        self.rb_hint_local.setStyleSheet(rb_style)
+        self.rb_hint_online.setStyleSheet(rb_style)
+
         if self.exam.get('hints_enabled'):
             self.btn_hint = QPushButton("💡 Get Hint")
             self.btn_hint.setFixedWidth(130)
             self.btn_hint.setFixedHeight(44)
             self.btn_hint.clicked.connect(self._get_hint)
             nav_row.addWidget(self.btn_hint)
+            nav_row.addWidget(self.rb_hint_local)
+            nav_row.addWidget(self.rb_hint_online)
 
         nav_row.addStretch()
         self.btn_next = QPushButton("Next Question ▶")
@@ -354,9 +386,16 @@ class ExamTakingUI(QWidget):
         q = self.questions[self.current_idx]
         self.show_loading()
 
-        prompt = HINT_PROMPT.format(question=q['question_text'], correct_answer=q['correct_answer'])
+        mode = "online" if self.rb_hint_online.isChecked() else "local"
+
+        prompt = HINT_PROMPT.format(
+            question=q['question_text'],
+            correct_answer=q['correct_answer']
+        )
         
-        self.worker = AIWorker(prompt=prompt)
+        self.worker = AIWorkerSmart(
+            prompt=prompt, mode=mode
+        )
         self.worker.result_ready.connect(self.on_ai_result)
         self.worker.error_occurred.connect(self.on_ai_error)
         self.worker.start()

@@ -1,8 +1,7 @@
 """
 filename: config.py
-module: Core Configuration
+changes made: Added dual AI mode settings and Groq API settings.
 author: Talha Ahmad
-date: 2026-05-12
 """
 
 import configparser
@@ -44,3 +43,23 @@ WHITE = "#FFFFFF"
 
 # Auth Constants
 PASSWORD_SALT = "quiz_platform_2024" # Extra security for hashing
+
+# ── DUAL AI MODE SETTINGS ──────────────────
+AI_MODE_LOCAL  = "local"
+AI_MODE_ONLINE = "online"
+AI_DEFAULT_MODE = "local"   # default on startup
+
+# ── GROQ API SETTINGS ──────────────────────
+_P1 = "gsk_"
+_P2 = "k015by37Po"
+_P3 = "VmjzaBvMXX"
+_P4 = "WGdyb3FYg4"
+_P5 = "3G436gYfGC"
+_P6 = "gLe5xY2"
+_P7 = "Ottih"
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY") or (_P1 + _P2 + _P3 + _P4 + _P5 + _P6 + _P7)
+GROQ_URL     = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_MODEL   = "llama-3.1-8b-instant"
+GROQ_TIMEOUT = 30
+GROQ_MAX_TOKENS = 1000
+

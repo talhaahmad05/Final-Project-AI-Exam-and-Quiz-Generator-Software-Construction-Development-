@@ -1,6 +1,6 @@
 """
 filename: ai_engine.py
-changes made: Rolled back to simple non-streaming version for MCQ generation to ensure JSON stability. Removed streaming and batching workers.
+changes made: Added dual AI mode (Local Ollama + Online Groq) with smart auto-fallback and fast MCQ generation.
 author: Talha Ahmad
 """
 
@@ -195,7 +195,9 @@ if project_root not in sys.path:
 from QuizPlatform.config import (
     AI_MODEL, AI_OLLAMA_URL as OLLAMA_URL, AI_KEEP_ALIVE as KEEP_ALIVE,
     AI_NUM_CTX as NUM_CTX, AI_NUM_PREDICT as NUM_PREDICT,
-    AI_TEMPERATURE as TEMPERATURE, AI_TOP_P as TOP_P, AI_TIMEOUT
+    AI_TEMPERATURE as TEMPERATURE, AI_TOP_P as TOP_P, AI_TIMEOUT,
+    GROQ_API_KEY, GROQ_URL, GROQ_MODEL,
+    GROQ_TIMEOUT, GROQ_MAX_TOKENS
 )
 
 # [1] Simplified GEN_QUESTIONS_PROMPT
@@ -495,3 +497,206 @@ class AIWorkerStream(QThread):
             )
         except Exception as e:
             self.error_occurred.emit(str(e))
+
+def ask_ai_groq(prompt):
+    """
+    Calls Groq cloud API for fast AI responses.
+    Uses llama-3.1-8b-instant model.
+    Falls back gracefully on any error.
+
+    Args:
+        prompt (str): The prompt to send.
+
+    Returns:
+        str: AI response or error message.
+    """
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": GROQ_MODEL,
+        "messages": [
+            {"role": "user", "content": prompt}
+        ],
+        "max_tokens": GROQ_MAX_TOKENS,
+        "temperature": 0.3
+    }
+    try:
+        response = requests.post(
+            GROQ_URL,
+            headers=headers,
+            json=payload,
+            timeout=GROQ_TIMEOUT
+        )
+        response.raise_for_status()
+        return response.json()[
+            "choices"
+        ][0]["message"]["content"].strip()
+    except requests.exceptions.ConnectionError:
+        return "ERROR: No internet connection."
+    except requests.exceptions.Timeout:
+        return "ERROR: Groq took too long."
+    except Exception as e:
+        return f"ERROR: {str(e)}"
+
+def ask_ai_smart(prompt, mode="local"):
+    """
+    Smart AI dispatcher. Routes to Groq or
+    Ollama based on selected mode.
+    Auto-falls back to local if Groq fails.
+
+    Args:
+        prompt (str): Prompt to send.
+        mode (str): "local" or "online"
+
+    Returns:
+        str: AI response text.
+    """
+    if mode == "online":
+        result = ask_ai_groq(prompt)
+        if result.startswith("ERROR:"):
+            # Auto fallback to local
+            print(f"Groq failed: {result}")
+            print("Falling back to local Ollama...")
+            return ask_ai(prompt)
+        return result
+    else:
+        return ask_ai(prompt)
+
+class AIWorkerSmart(QThread):
+    """
+    Smart AI worker that uses either Groq
+    or Ollama based on the mode parameter.
+    Drop-in replacement for AIWorker.
+
+    Signals:
+        result_ready (str): AI response.
+        error_occurred (str): Error message.
+        mode_used (str): Which mode was used.
+    """
+    result_ready  = pyqtSignal(str)
+    error_occurred = pyqtSignal(str)
+    mode_used     = pyqtSignal(str)
+
+    def __init__(self, prompt, mode="local"):
+        """
+        Args:
+            prompt (str): Prompt to send.
+            mode (str): "local" or "online"
+        """
+        super().__init__()
+        self.prompt = prompt
+        self.mode   = mode
+
+    def run(self):
+        """
+        Runs AI call in background thread.
+        Emits result_ready or error_occurred.
+        """
+        try:
+            response = ask_ai_smart(
+                self.prompt, self.mode
+            )
+            if response.startswith("ERROR:"):
+                self.error_occurred.emit(response)
+            else:
+                self.mode_used.emit(self.mode)
+                self.result_ready.emit(response)
+        except Exception as e:
+            self.error_occurred.emit(str(e))
+
+class AIWorkerMCQGroq(QThread):
+    """
+    MCQ generator using Groq API.
+    Much faster than local Ollama.
+    Returns all questions at once.
+
+    Signals:
+        all_done (list): Full question list.
+        error_occurred (str): Error message.
+        progress_update (int): 0-100 progress.
+    """
+    all_done       = pyqtSignal(list)
+    error_occurred = pyqtSignal(str)
+    progress_update = pyqtSignal(int)
+
+    def __init__(self, topic, difficulty,
+                 num_questions):
+        super().__init__()
+        self.topic         = topic
+        self.difficulty    = difficulty
+        self.num_questions = num_questions
+
+    def run(self):
+        """
+        Calls Groq API for MCQ generation.
+        Parses JSON response and emits results.
+        """
+        self.progress_update.emit(10)
+
+        prompt = GEN_QUESTIONS_PROMPT.format(
+            n=self.num_questions,
+            topic=self.topic,
+            difficulty=self.difficulty
+        )
+
+        self.progress_update.emit(30)
+        result = ask_ai_groq(prompt)
+        self.progress_update.emit(70)
+
+        if result.startswith("ERROR:"):
+            self.error_occurred.emit(result)
+            return
+
+        try:
+            cleaned = result.strip()
+
+            if "```" in cleaned:
+                lines = cleaned.split("\n")
+                cleaned = "\n".join(
+                    l for l in lines
+                    if not l.strip().startswith("```")
+                ).strip()
+
+            start = cleaned.find("[")
+            end   = cleaned.rfind("]")
+            if start == -1 or end == -1:
+                self.error_occurred.emit(
+                    "Groq returned invalid format."
+                )
+                return
+
+            cleaned   = cleaned[start:end + 1]
+            questions = json.loads(cleaned)
+
+            if not isinstance(questions, list):
+                self.error_occurred.emit(
+                    "Groq returned wrong format."
+                )
+                return
+
+            required = {
+                "question", "options", "correct"
+            }
+            valid = [
+                q for q in questions
+                if required.issubset(q.keys())
+                and isinstance(q.get("options"), list)
+                and len(q["options"]) == 4
+            ]
+
+            if not valid:
+                self.error_occurred.emit(
+                    "No valid questions returned."
+                )
+                return
+
+            self.progress_update.emit(100)
+            self.all_done.emit(valid)
+
+        except json.JSONDecodeError:
+            self.error_occurred.emit(
+                "Groq returned invalid JSON."
+            )
+

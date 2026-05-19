@@ -1,21 +1,24 @@
-# VERIFIED — no changes needed
 """
 filename: result_ui.py
-module: Result & Review UI
+changes made: Added local/online dual AI toggles and interactive AI Insights Card for dynamic feedback and weak topic analysis.
 author: Talha Ahmad
-date: 2026-05-12
-Sprint: 3 - Results & Grading
 """
 
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                              QPushButton, QTableWidget, QTableWidgetItem,
-                              QHeaderView, QFrame, QScrollArea, QSizePolicy)
+                               QPushButton, QTableWidget, QTableWidgetItem,
+                               QHeaderView, QFrame, QScrollArea, QSizePolicy,
+                               QRadioButton, QButtonGroup)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QColor
 
 from QuizPlatform.dao.result_dao import ResultDAO
 from QuizPlatform.exceptions import QuizDatabaseError
 from QuizPlatform.utils.logger import get_logger
+from QuizPlatform.ai_engine import (
+    AIWorkerSmart,
+    FEEDBACK_PROMPT,
+    WEAK_TOPICS_PROMPT
+)
 
 logger = get_logger(__name__)
 
@@ -28,6 +31,7 @@ class ResultUI(QWidget):
         self.dashboard = dashboard
         self.result_id = result_id
         self.result_dao = ResultDAO()
+        self.result = None
         self._build_ui()
 
     def _build_ui(self):
@@ -46,6 +50,7 @@ class ResultUI(QWidget):
             if not result:
                 layout.addWidget(QLabel("Result not found."))
                 return
+            self.result = result
 
             # ── Score Card ──
             score_card = QFrame()
@@ -85,6 +90,77 @@ class ResultUI(QWidget):
             details_lbl.setAlignment(Qt.AlignCenter)
             sc_layout.addWidget(details_lbl)
             layout.addWidget(score_card)
+
+            # ── Dynamic AI Insights Card (Interactive Toggles) ──
+            insights_card = QFrame()
+            insights_card.setStyleSheet("background-color: #F8FAFC; border-radius: 12px; border: 1px solid #E2E8F0; padding: 12px;")
+            ic_layout = QVBoxLayout(insights_card)
+            
+            ic_title = QLabel("🤖 AI Insights Dispatcher")
+            ic_title.setFont(QFont("Segoe UI", 12, QFont.Bold))
+            ic_title.setStyleSheet("color: #1E293B;")
+            ic_layout.addWidget(ic_title)
+            
+            # AI Engine selection radio buttons
+            self.rb_result_local  = QRadioButton("🖥️ Local AI")
+            self.rb_result_online = QRadioButton("⚡ Online AI")
+            self.rb_result_local.setChecked(True)
+            self.result_mode_group = QButtonGroup(self)
+            self.result_mode_group.addButton(self.rb_result_local)
+            self.result_mode_group.addButton(self.rb_result_online)
+            
+            rb_style = """
+                QRadioButton {
+                    font-size: 12px;
+                    padding: 5px 14px;
+                    border-radius: 10px;
+                    background: #F1F5F9;
+                    color: #475569;
+                    font-weight: 500;
+                }
+                QRadioButton::indicator {
+                    width: 0px; height: 0px;
+                }
+                QRadioButton:checked {
+                    background: #1F4E79;
+                    color: white;
+                    font-weight: bold;
+                }
+                QRadioButton:hover {
+                    background: #E2E8F0;
+                }
+            """
+            self.rb_result_local.setStyleSheet(rb_style)
+            self.rb_result_online.setStyleSheet(rb_style)
+            
+            selector_layout = QHBoxLayout()
+            selector_layout.addWidget(QLabel("AI Engine:"))
+            selector_layout.addWidget(self.rb_result_local)
+            selector_layout.addWidget(self.rb_result_online)
+            selector_layout.addStretch()
+            ic_layout.addLayout(selector_layout)
+            
+            # Action buttons
+            btn_layout = QHBoxLayout()
+            self.btn_feedback = QPushButton("🤖 Get Detailed Feedback")
+            self.btn_feedback.setStyleSheet("background-color: #1E293B; color: white; padding: 8px 16px; border-radius: 6px; font-weight: bold;")
+            self.btn_feedback.clicked.connect(self.get_feedback)
+            btn_layout.addWidget(self.btn_feedback)
+            
+            self.btn_weak_topics = QPushButton("🎯 Analyze Weak Topics")
+            self.btn_weak_topics.setStyleSheet("background-color: #0F766E; color: white; padding: 8px 16px; border-radius: 6px; font-weight: bold;")
+            self.btn_weak_topics.clicked.connect(self.get_weak_topics)
+            btn_layout.addWidget(self.btn_weak_topics)
+            ic_layout.addLayout(btn_layout)
+            
+            # Display Area
+            self.ai_insights_display = QLabel("Click the buttons above to trigger live, dynamic AI analysis.")
+            self.ai_insights_display.setWordWrap(True)
+            self.ai_insights_display.setStyleSheet("background-color: white; border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px; color: #475569; font-size: 12px; font-style: italic;")
+            self.ai_insights_display.setMinimumHeight(80)
+            ic_layout.addWidget(self.ai_insights_display)
+            
+            layout.addWidget(insights_card)
 
             # ── AI Feedback ──
             if result.get('feedback'):
@@ -149,3 +225,94 @@ class ResultUI(QWidget):
 
         except QuizDatabaseError as e:
             layout.addWidget(QLabel(f"Error loading results: {e}"))
+
+    def get_feedback(self):
+        if not self.result:
+            return
+        
+        self.btn_feedback.setEnabled(False)
+        self.btn_feedback.setText("Thinking...")
+        self.ai_insights_display.setStyleSheet("background-color: white; border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px; color: #475569; font-size: 12px; font-style: italic;")
+        self.ai_insights_display.setText("AI is analyzing your results for encouraging feedback...")
+        
+        # Wrong questions calculation
+        wrong_questions = []
+        for ans in self.result.get('answers', []):
+            is_correct = str(ans['student_answer']).strip().lower() == ans['correct_answer'].strip().lower()
+            if ans['type'] == 'Short Answer':
+                is_correct = float(ans['marks_awarded'] or 0) > 0
+            if not is_correct:
+                wrong_questions.append(str(ans['question_text'])[:50])
+                
+        prompt = FEEDBACK_PROMPT.format(
+            score=f"{self.result['percentage']:.1f}",
+            subject=self.result.get('exam_title', 'General'),
+            wrong_questions=", ".join(wrong_questions) if wrong_questions else "None"
+        )
+        
+        mode = "online" if self.rb_result_online.isChecked() else "local"
+        
+        self.worker = AIWorkerSmart(prompt=prompt, mode=mode)
+        self.worker.result_ready.connect(self.on_feedback_received)
+        self.worker.error_occurred.connect(self.on_ai_error)
+        self.worker.start()
+
+    def get_weak_topics(self):
+        if not self.result:
+            return
+            
+        self.btn_weak_topics.setEnabled(False)
+        self.btn_weak_topics.setText("Analyzing...")
+        self.ai_insights_display.setStyleSheet("background-color: white; border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px; color: #475569; font-size: 12px; font-style: italic;")
+        self.ai_insights_display.setText("AI is scanning your incorrect responses to isolate weak areas...")
+        
+        # Collect incorrect topics
+        wrong_topics = []
+        for ans in self.result.get('answers', []):
+            is_correct = str(ans['student_answer']).strip().lower() == ans['correct_answer'].strip().lower()
+            if ans['type'] == 'Short Answer':
+                is_correct = float(ans['marks_awarded'] or 0) > 0
+            if not is_correct:
+                topic_val = ans.get('topic', self.result.get('exam_title', 'General'))
+                if topic_val and topic_val not in wrong_topics:
+                    wrong_topics.append(topic_val)
+                    
+        prompt = WEAK_TOPICS_PROMPT.format(topics=", ".join(wrong_topics) if wrong_topics else "None")
+        
+        mode = "online" if self.rb_result_online.isChecked() else "local"
+        
+        self.worker = AIWorkerSmart(prompt=prompt, mode=mode)
+        self.worker.result_ready.connect(self.on_weak_topics_received)
+        self.worker.error_occurred.connect(self.on_ai_error)
+        self.worker.start()
+
+    def on_feedback_received(self, result):
+        self.btn_feedback.setEnabled(True)
+        self.btn_feedback.setText("🤖 Get AI Feedback")
+        self.ai_insights_display.setStyleSheet("background-color: white; border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px; color: #1E293B; font-size: 13px; font-style: normal; font-weight: 500;")
+        self.ai_insights_display.setText(result)
+
+    def on_weak_topics_received(self, result):
+        self.btn_weak_topics.setEnabled(True)
+        self.btn_weak_topics.setText("🎯 Analyze Weak Topics")
+        self.ai_insights_display.setStyleSheet("background-color: white; border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px; color: #1E293B; font-size: 13px; font-style: normal; font-weight: 500;")
+        
+        # Try parsing JSON array
+        try:
+            from QuizPlatform.ai_engine import RobustParser
+            weak_list = RobustParser.extract_json(result)
+            if weak_list and isinstance(weak_list, list):
+                bullet_list = "\n".join(f"• {topic}" for topic in weak_list)
+                self.ai_insights_display.setText(f"🎯 AI Suggested Weak Topics to Focus On:\n\n{bullet_list}")
+            else:
+                self.ai_insights_display.setText(result)
+        except:
+            self.ai_insights_display.setText(result)
+
+    def on_ai_error(self, error):
+        self.btn_feedback.setEnabled(True)
+        self.btn_feedback.setText("🤖 Get AI Feedback")
+        self.btn_weak_topics.setEnabled(True)
+        self.btn_weak_topics.setText("🎯 Analyze Weak Topics")
+        self.ai_insights_display.setStyleSheet("background-color: white; border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px; color: #C62828; font-size: 12px; font-style: italic;")
+        self.ai_insights_display.setText(f"⚠️ AI Engine Error: {error}")

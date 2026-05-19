@@ -1,23 +1,20 @@
-# VERIFIED — Rolled back to simple synchronous MCQ generation
 """
 filename: ai_question_gen_ui.py
-changes made: Refactored to use centralized RobustParser from ai_engine.
+changes made: Added local/online dual AI selector, integrated Groq API worker for fast generation, and updated callbacks.
 author: Talha Ahmad
-date: 2026-05-16
 """
 
 import json
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                                QPushButton, QTableWidget, QTableWidgetItem, QMessageBox,
-                               QLineEdit, QComboBox, QFrame, QHeaderView, QProgressBar)
+                               QLineEdit, QComboBox, QFrame, QHeaderView, QProgressBar,
+                               QRadioButton, QButtonGroup)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 
 from QuizPlatform.ai_engine import (
-    AIWorker,
-    GEN_QUESTIONS_PROMPT,
-    RobustParser,
-    ask_ai_mcq
+    AIWorker, AIWorkerMCQGroq,
+    GEN_QUESTIONS_PROMPT, RobustParser, ask_ai_mcq
 )
 from QuizPlatform.dao.question_dao import QuestionDAO
 from QuizPlatform.utils.logger import get_logger
@@ -60,6 +57,50 @@ class AIQuestionGenUI(QWidget):
         ai_badge.setFixedWidth(200)
         card_layout.addWidget(ai_badge)
 
+        # ── AI Mode Selector ──────────────────────
+        self.mode_group  = QButtonGroup(self)
+        self.rb_local    = QRadioButton("🖥️  Local AI (Ollama)")
+        self.rb_online   = QRadioButton("⚡  Online AI (Groq) — Fast")
+        self.rb_local.setChecked(True)
+
+        # Style the radio buttons
+        rb_style = """
+            QRadioButton {
+                font-size: 13px;
+                padding: 5px 14px;
+                border-radius: 10px;
+                background: #F0F4FF;
+                color: #1F4E79;
+                font-weight: 500;
+            }
+            QRadioButton::indicator {
+                width: 0px; height: 0px;
+            }
+            QRadioButton:checked {
+                background: #1F4E79;
+                color: white;
+                font-weight: bold;
+            }
+            QRadioButton:hover {
+                background: #D0E4F7;
+            }
+        """
+        self.rb_local.setStyleSheet(rb_style)
+        self.rb_online.setStyleSheet(rb_style)
+
+        self.mode_group.addButton(self.rb_local)
+        self.mode_group.addButton(self.rb_online)
+
+        mode_layout = QHBoxLayout()
+        mode_layout.addWidget(
+            QLabel("AI Engine:")
+        )
+        mode_layout.addWidget(self.rb_local)
+        mode_layout.addWidget(self.rb_online)
+        mode_layout.addStretch()
+
+        card_layout.addLayout(mode_layout)
+
         row1 = QHBoxLayout()
         row1.addWidget(QLabel("Topic / Subject:"))
         self.topic_input = QLineEdit()
@@ -93,6 +134,9 @@ class AIQuestionGenUI(QWidget):
         self.loading_label.setAlignment(Qt.AlignCenter)
         self.loading_label.hide()
         card_layout.addWidget(self.loading_label)
+
+        # Alias for status/loading text updates
+        self.lbl_status = self.loading_label
 
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 0)
@@ -170,13 +214,20 @@ class AIQuestionGenUI(QWidget):
         self.progress_bar.hide()
         self.loading_label.hide()
 
+    def get_ai_mode(self):
+        """Returns 'online' or 'local'."""
+        return "online" if self.rb_online.isChecked() else "local"
+
     def generate_questions(self):
         topic = self.topic_input.text().strip()
         difficulty = self.diff_combo.currentText()
         num_q = int(self.num_combo.currentText())
 
         if not topic:
-            QMessageBox.warning(self, "Input Error", "Please enter a topic.")
+            QMessageBox.warning(
+                self, "Input Error",
+                "Please enter a topic."
+            )
             return
 
         self.show_loading()
@@ -184,16 +235,71 @@ class AIQuestionGenUI(QWidget):
         self.table.setRowCount(0)
         self.generated_questions = []
 
-        prompt = GEN_QUESTIONS_PROMPT.format(
-            n=num_q,
-            topic=topic,
-            difficulty=difficulty
-        )
+        mode = self.get_ai_mode()
 
-        self.worker = AIWorker(prompt=prompt)
-        self.worker.result_ready.connect(self.on_ai_result)
-        self.worker.error_occurred.connect(self.on_ai_error)
-        self.worker.start()
+        if mode == "online":
+            # Use fast Groq API
+            self.lbl_status.setText(
+                "⚡ Generating with Groq AI..."
+            )
+            self.worker = AIWorkerMCQGroq(
+                topic=topic,
+                difficulty=difficulty,
+                num_questions=num_q
+            )
+            self.worker.all_done.connect(
+                self.on_all_questions_done
+            )
+            self.worker.error_occurred.connect(
+                self.on_ai_error
+            )
+            self.worker.progress_update.connect(
+                self.progress_bar.setValue
+            )
+            self.worker.start()
+        else:
+            # Use existing local Ollama logic
+            prompt = GEN_QUESTIONS_PROMPT.format(
+                n=num_q,
+                topic=topic,
+                difficulty=difficulty
+            )
+            self.lbl_status.setText(
+                "🖥️ Generating with Local AI..."
+            )
+            self.worker = AIWorker(prompt=prompt)
+            self.worker.result_ready.connect(
+                self.on_ai_result
+            )
+            self.worker.error_occurred.connect(
+                self.on_ai_error
+            )
+            self.worker.start()
+
+    def on_all_questions_done(self, valid):
+        """Handles Groq pre-parsed MCQ questions"""
+        try:
+            # Populate table
+            for q in valid:
+                row = self.table.rowCount()
+                self.table.insertRow(row)
+                self.table.setItem(row, 0, QTableWidgetItem(q["question"]))
+                self.table.setItem(row, 1, QTableWidgetItem(q["options"][0]))
+                self.table.setItem(row, 2, QTableWidgetItem(q["options"][1]))
+                self.table.setItem(row, 3, QTableWidgetItem(q["options"][2]))
+                self.table.setItem(row, 4, QTableWidgetItem(q["options"][3]))
+                self.table.setItem(row, 5, QTableWidgetItem(q["correct"]))
+                self.table.setItem(row, 6, QTableWidgetItem(q.get("topic", "")))
+                self.table.setItem(row, 7, QTableWidgetItem(q.get("difficulty", "")))
+
+            self.generated_questions = valid
+            self.hide_loading()
+            self.btn_save.setEnabled(True)
+            self.count_lbl.setText(f"{len(valid)} questions generated. Review and click Save.")
+            self.table.resizeColumnsToContents()
+        except Exception as e:
+            logger.error(f"Error presenting Groq questions: {e}")
+            self.on_ai_error(str(e))
 
     def on_ai_result(self, result):
         """Parses the AI JSON response using RobustParser"""
